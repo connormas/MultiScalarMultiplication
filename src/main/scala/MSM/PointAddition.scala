@@ -32,14 +32,18 @@ class PointAddition(val w: Int) extends Module {
     val valid = Output(Bool())
   })
 
+  // instantiations
   val modinv = Module(new ModularInverse(w))
   val l = Wire(SInt())
   val new_x = Wire(SInt())
   val new_y = Wire(SInt())
+
+  // control signals
   val inverses = io.p1x === io.p2x && io.p1y === -io.p2y
   val p1inf = io.p1x === 0.S && io.p1y === 0.S
   val p2inf = io.p2x === 0.S && io.p2y === 0.S
 
+  // default values and assignments
   modinv.io.p := io.p
   modinv.io.load := io.load
   io.outx := 0.S
@@ -47,7 +51,7 @@ class PointAddition(val w: Int) extends Module {
   new_x := 0.S
   new_y := 0.S
 
-  // create new point coordinates
+  // create new point coordinates, when not dealing w special case
   when (!p1inf && !p2inf && !inverses) {
     new_x := ((l * l)  - io.p1x - io.p2x) % io.p
     io.outx := new_x
@@ -71,7 +75,7 @@ class PointAddition(val w: Int) extends Module {
     l := (io.p2y - io.p1y) * modinv.io.out
   }
 
-  // assert valid signal
+  // assert valid signal, handles special cases
   io.valid := false.B
   when (modinv.io.valid) {
     io.valid := true.B
@@ -79,11 +83,11 @@ class PointAddition(val w: Int) extends Module {
     io.valid := true.B     // when P1 == -P2
     io.outx := 0.S
     io.outy := 0.S
-  } .elsewhen (p1inf) { // p1 is point at inf
+  } .elsewhen (p1inf) {    // p1 is point at inf
     io.valid := true.B
     io.outx := io.p2x
     io.outy := io.p2y
-  } .elsewhen (p2inf) { // p2 is point at inf
+  } .elsewhen (p2inf) {   // p2 is point at inf
     io.valid := true.B
     io.outx := io.p1x
     io.outy := io.p1y
