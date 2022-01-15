@@ -34,13 +34,19 @@ class PointAddition(val w: Int) extends Module {
     val valid = Output(Bool())
   })
   val modinv = Module(new ModularInverse(w))
-  modinv.io.a := io.p2x - io.p1x
   modinv.io.p := io.p
   modinv.io.load := io.load
   io.outx := 0.S
   io.outy := 0.S
-  io.valid := false.B
-  val l = (io.p2y - io.p1y) * modinv.io.out
+
+  val l = Wire(SInt())
+  modinv.io.a := io.p2x - io.p1x
+  when (io.p1x === io.p2x && io.p1y === io.p2y) { // point double
+    modinv.io.a := 2.S * io.p1y
+    l := (3.S * io.p1x * io.p1x) + io.a * modinv.io.out
+  } .otherwise {
+    l := (io.p2y - io.p1y) * modinv.io.out
+  }
 
   // create new point coordinates set valid when finished
   val new_x = ((l * l)  - io.p1x - io.p2x) % io.p
@@ -55,6 +61,7 @@ class PointAddition(val w: Int) extends Module {
   }
 
   // assert valid signal
+  io.valid := false.B
   when (modinv.io.valid) {
     io.valid := true.B
   }

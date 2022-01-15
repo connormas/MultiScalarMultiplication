@@ -55,6 +55,7 @@ class MSMtest extends FreeSpec with ChiselScalatestTester {
         println(s"${i}. now testing..")
         g.print()
         t.print()
+        r.print()
         println()
         dut.io.a.poke(g.curve.a.S)
         dut.io.p.poke(g.curve.p.S)
