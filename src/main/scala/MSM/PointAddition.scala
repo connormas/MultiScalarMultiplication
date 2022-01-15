@@ -36,22 +36,29 @@ class PointAddition(val w: Int) extends Module {
   val l = Wire(SInt())
   val new_x = Wire(SInt())
   val new_y = Wire(SInt())
+  val inverses = io.p1x === io.p2x && io.p1y === -io.p2y
+  val p1inf = io.p1x === 0.S && io.p1y === 0.S
+  val p2inf = io.p2x === 0.S && io.p2y === 0.S
+
   modinv.io.p := io.p
   modinv.io.load := io.load
   io.outx := 0.S
   io.outy := 0.S
-
+  new_x := 0.S
+  new_y := 0.S
 
   // create new point coordinates
-  new_x := ((l * l)  - io.p1x - io.p2x) % io.p
-  io.outx := new_x
-  when (new_x < 0.S) {
-    io.outx := new_x + io.p
-  }
-  new_y := (l * (io.p1x - new_x) - io.p1y) % io.p
-  io.outy := new_y
-  when (new_y < 0.S) {
-    io.outy := new_y + io.p
+  when (!p1inf && !p2inf && !inverses) {
+    new_x := ((l * l)  - io.p1x - io.p2x) % io.p
+    io.outx := new_x
+    when (new_x < 0.S) {
+      io.outx := new_x + io.p
+    }
+    new_y := (l * (io.p1x - new_x) - io.p1y) % io.p
+    io.outy := new_y
+    when (new_y < 0.S) {
+      io.outy := new_y + io.p
+    }
   }
   
   // calculate lambda, handle case when P1 == P2
@@ -68,10 +75,22 @@ class PointAddition(val w: Int) extends Module {
   io.valid := false.B
   when (modinv.io.valid) {
     io.valid := true.B
+  } .elsewhen (inverses) { // output point at infinity
+    io.valid := true.B     // when P1 == -P2
+    io.outx := 0.S
+    io.outy := 0.S
+  } .elsewhen (p1inf) { // p1 is point at inf
+    io.valid := true.B
+    io.outx := io.p2x
+    io.outy := io.p2y
+  } .elsewhen (p2inf) { // p2 is point at inf
+    io.valid := true.B
+    io.outx := io.p1x
+    io.outy := io.p1y
   }
 
   // debugging
-  //printf(p"out = (${io.outx},${io.outy}), modinvout=${modinv.io.out}, valid=${io.valid}\n\n")
+  //printf(p"out = (${io.outx},${io.outy}), modinvout=${modinv.io.out}, valid=${io.valid}, p1inf=${p1inf}\n\n")
 }
 
 
