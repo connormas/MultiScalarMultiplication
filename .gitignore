@@ -5,3 +5,9 @@ target/*
 project/boot/
 
 .idea/
+
+src/target/
+
+src/project/
+
+
