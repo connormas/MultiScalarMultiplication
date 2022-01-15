@@ -3,8 +3,6 @@ package MSM
 import chisel3._
 
 /** TODO
- * - make PointDouble module
- *   - separate module? mux calculation of l?
  * - custom bundle interface for PointAddition
  * - handle point at infinity
  * - latch values into regs in point addition
@@ -33,31 +31,37 @@ class PointAddition(val w: Int) extends Module {
     val outy =  Output(SInt(w.W))
     val valid = Output(Bool())
   })
+
   val modinv = Module(new ModularInverse(w))
+  val l = Wire(SInt())
+  val new_x = Wire(SInt())
+  val new_y = Wire(SInt())
   modinv.io.p := io.p
   modinv.io.load := io.load
   io.outx := 0.S
   io.outy := 0.S
 
-  val l = Wire(SInt())
-  modinv.io.a := io.p2x - io.p1x
-  when (io.p1x === io.p2x && io.p1y === io.p2y) { // point double
-    modinv.io.a := 2.S * io.p1y
-    l := (3.S * io.p1x * io.p1x) + io.a * modinv.io.out
-  } .otherwise {
-    l := (io.p2y - io.p1y) * modinv.io.out
-  }
 
-  // create new point coordinates set valid when finished
-  val new_x = ((l * l)  - io.p1x - io.p2x) % io.p
+  // create new point coordinates
+  new_x := ((l * l)  - io.p1x - io.p2x) % io.p
   io.outx := new_x
   when (new_x < 0.S) {
     io.outx := new_x + io.p
   }
-  val new_y = (l * (io.p1x - new_x) - io.p1y) % io.p
+  new_y := (l * (io.p1x - new_x) - io.p1y) % io.p
   io.outy := new_y
   when (new_y < 0.S) {
     io.outy := new_y + io.p
+  }
+  
+  // calculate lambda, handle case when P1 == P2
+  modinv.io.a := io.p2x - io.p1x
+  when (io.p1x === io.p2x && io.p1y === io.p2y) { // point double
+    new_x := ((l * l)  - io.p1x - io.p1x) % io.p
+    modinv.io.a := 2.S * io.p1y
+    l := (3.S * io.p1x * io.p1x + io.a) * modinv.io.out
+  } .otherwise {
+    l := (io.p2y - io.p1y) * modinv.io.out
   }
 
   // assert valid signal
@@ -67,8 +71,9 @@ class PointAddition(val w: Int) extends Module {
   }
 
   // debugging
-  //printf(p"out = (${io.outx},${io.outy}), modinvout=${modinv.io.out}, valid=${io.valid}\n")// modinv.valid=${modinv.io.valid}\n")
+  //printf(p"out = (${io.outx},${io.outy}), modinvout=${modinv.io.out}, valid=${io.valid}\n\n")
 }
+
 
 /* finds the modular inverse of A mod P */
 class ModularInverse(val w: Int) extends Module {
@@ -106,5 +111,5 @@ class ModularInverse(val w: Int) extends Module {
   }
 
   // use when debugging ModularInverse() only
-  //printf(p"a=${a}, p=${p}, n=${n}, valid=${io.valid}\n")
+  //printf(p"a=${a}, p=${p}, n=${n}, valid=${io.valid}\n\n")
 }

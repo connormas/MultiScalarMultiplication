@@ -17,16 +17,16 @@ class MSMtest extends FreeSpec with ChiselScalatestTester {
       dut.io.p.poke(17.S)
       dut.io.p1x.poke(15.S)
       dut.io.p1y.poke(13.S)
-      dut.io.p2x.poke(5.S)
-      dut.io.p2y.poke(8.S)
+      dut.io.p2x.poke(15.S)
+      dut.io.p2y.poke(13.S)
       dut.io.load.poke(true.B)
       dut.clock.step(1)
       dut.io.load.poke(false.B)
       dut.clock.step(1)
       while ((dut.io.valid.peek().litValue() == 0)) dut.clock.step(1)
       dut.clock.step(5)
-      dut.io.outx.expect(10.S)
-      dut.io.outy.expect(15.S)
+      dut.io.outx.expect(2.S)
+      dut.io.outy.expect(10.S)
 
       dut.io.a.poke(0.S)
       dut.io.p.poke(17.S)
@@ -49,7 +49,7 @@ class MSMtest extends FreeSpec with ChiselScalatestTester {
     test (new PointAddition(32)) { dut =>
       val p1707 = new EllipticCurve(0, 7, 17)
       val g = new Point(15, 13, p1707) // generator point
-      for (i <- 2 until 17) {
+      for (i <- 1 until 17) {
         val t = g * i
         val r = g + t
         println(s"${i}. now testing..")
