@@ -2,7 +2,7 @@ test_run_dir/*
 
 target/*
 
-project/boot/
+project/*
 
 .idea/
 
