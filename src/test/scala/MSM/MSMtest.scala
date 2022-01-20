@@ -14,6 +14,8 @@ class testfunctions {
                         rx: Int, ry: Int): Unit = {
     dut.io.a.poke(a.S)
     dut.io.p.poke(p.S)
+    //val p1 = new PointBundle(32) // how to initialize values?
+    //val p2 = new PointBundle(32)
     dut.io.p1x.poke(p1x.S)
     dut.io.p1y.poke(p1y.S)
     dut.io.p2x.poke(p2x.S)
@@ -31,27 +33,44 @@ class testfunctions {
 
 class MSMtest extends FreeSpec with ChiselScalatestTester {
 
-  val t = new testfunctions()
-  "PointAddition Tests - manual tests" in {
-    test (new PointAddition(32)) { dut =>
-      t.PointAdditionTest(dut,  0, 17, 15, 13, 15, 13,  2, 10) // point double
-      t.PointAdditionTest(dut,  0, 17,  0,  0,  6, 11,  6, 11) // point at inf
-      t.PointAdditionTest(dut,  0, 17,  3,  0,  6, 11, 12,  1)
+  "PointMult Tests - manual tests" in {
+    test (new PointMult(32, 32)) { dut =>
+      dut.io.a.poke(0.S)
+      dut.io.p.poke(17.S)
+      dut.io.px.poke(15.S)
+      dut.io.py.poke(13.S)
+      dut.io.s.poke(1.S)
+      dut.io.load.poke(true.B)
+      dut.clock.step()
+      dut.io.load.poke(false.B)
+      while ((dut.io.valid.peek().litValue() == 0)) dut.clock.step(1)
+      dut.io.outx.expect(15.S)
+      dut.io.outy.expect(13.S)
     }
   }
 
-  "PointAddition Tests - more extensive, utilize functional model" in {
+  /*val t = new testfunctions()
+  "PointAddition Tests - manual tests" in {
+    test (new PointAddition(32)) { dut =>
+      t.PointAdditionTest(dut,  0, 17, 15, 13, 15, 13,  2, 10) // point double
+      t.PointAdditionTest(dut,  0, 17,  0,  0,  6, 11,  6, 11) // p1 at inf
+      t.PointAdditionTest(dut,  0, 17, 15, 13,  0,  0, 15, 13) // p2 at inf
+      t.PointAdditionTest(dut,  0, 17,  3,  0,  6, 11, 12,  1)
+    }
+  }*/
+
+  /*"PointAddition Tests - more extensive, utilize functional model" in {
     test (new PointAddition(32)) { dut =>
       val p1707 = new EllipticCurve(0, 7, 17)
       val g = new Point(15, 13, p1707) // generator point
       for (i <- 1 until 17) {
         val t = g * i
         val r = g + t
-        //println(s"${i}. now testing..")
-        //g.print()
-        //t.print()
-        //r.print()
-        //println()
+        println(s"${i}. now testing..")
+        g.print()
+        t.print()
+        r.print()
+        println()
         dut.io.a.poke(g.curve.a.S)
         dut.io.p.poke(g.curve.p.S)
         dut.io.p1x.poke(g.x.S)
@@ -67,7 +86,7 @@ class MSMtest extends FreeSpec with ChiselScalatestTester {
         dut.io.outy.expect(r.y.S)
       }
     }
-  }
+  }*/
 
 
 
