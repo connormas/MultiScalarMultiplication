@@ -1,6 +1,7 @@
 package MSM
 
 import chisel3._
+import chisel3.util.RegEnable
 
 class PointMult(pw: Int, sw: Int) extends Module {
   val io = IO(new Bundle {
@@ -9,26 +10,52 @@ class PointMult(pw: Int, sw: Int) extends Module {
     val px = Input(SInt(pw.W))
     val py = Input(SInt(pw.W))
     val s =  Input(SInt(sw.W))
+    val load = Input(Bool())
+    val valid = Output(Bool())
     val outx = Output(SInt(pw.W))
     val outy = Output(SInt(pw.W))
-    val valid = Output(Bool())
   })
 
-  val padd = Module(new PointAddition(pw))
-  padd.io.p1x := io.px
-  padd.io.p1y := io.py
-  padd.io.p2x := io.px
-  padd.io.p2y := io.py
-  padd.io.load := true.B
-  io.outx := padd.io.outx
-  io.outy := padd.io.outy
 
-  when (io.s > 0.S && padd.io.valid) {
-    io.s := io.s - 1.S
-    padd.io.p2x := padd.io.outx
-    padd.io.p2y := padd.io.outy
+  // regs to latch x, y, and s values, delay load by 1 cycle
+  val x = RegEnable(io.px, 0.S, io.load)
+  val y = RegEnable(io.py, 0.S, io.load)
+  val s = RegEnable(io.s, 0.S, io.load)
+  val l = RegInit(io.load)
+
+  // instantiate PointAddition module and make connections
+  val padd = Module(new PointAddition(pw))
+  padd.io.p1x := x
+  padd.io.p1y := y
+  padd.io.p2x := x
+  padd.io.p2y := y
+  padd.io.load := l
+  padd.io.a := io.a
+  padd.io.p := io.p
+
+
+  // regs to hold result, assign outputs
+  val xres = Reg(SInt(pw.W))
+  val yres = Reg(SInt(pw.W))
+  io.outx := xres
+  io.outy := yres
+  padd.io.p2x := xres
+  padd.io.p2y := yres
+
+
+  when (s > 0.S && padd.io.valid) {
+    s := s - 1.S
+    xres := padd.io.outx
+    yres := padd.io.outy
   }
 
   // assert valid signal
-  io.valid := io.s === 0.S
+  when (s === 1.S) {
+    io.outx := x
+    io.outy := y
+    io.valid := true.B
+  } .otherwise {
+    io.valid := s === 0.S
+  }
 }
+
