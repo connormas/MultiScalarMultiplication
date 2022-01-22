@@ -6,7 +6,6 @@ import chisel3.util.RegEnable
 /** TODO
  * - custom bundle interface for PointAddition
  * - custom point bundle
- * - latch values into regs in point addition
  * - is there a faster way to calculate mod inverse?
  * */
 
@@ -25,7 +24,6 @@ class PointAddition(val w: Int) extends Module {
     val outy =  Output(SInt(w.W))
     val valid = Output(Bool())
   })
-
 
   // latch inputs into regs
   val p1x = RegEnable(io.p1x, 0.S, io.load)
@@ -77,10 +75,9 @@ class PointAddition(val w: Int) extends Module {
   }
 
   // assert valid signal, handles special cases
-  io.valid := false.B
-  when (modinv.io.valid && !io.load) {
-    io.valid := true.B
-  } .elsewhen (inverses) { // output point at infinity
+  io.valid := modinv.io.valid && !io.load && !RegNext(io.load)
+
+  when (inverses) { // output point at infinity
     io.valid := true.B     // when P1 == -P2
     io.outx := 0.S
     io.outy := 0.S
@@ -88,7 +85,7 @@ class PointAddition(val w: Int) extends Module {
     io.valid := true.B
     io.outx := p2x
     io.outy := p2y
-  } .elsewhen (p2inf) {   // p2 is point at inf
+  } .elsewhen (p2inf) {    // p2 is point at inf
     io.valid := true.B
     io.outx := p1x
     io.outy := p1y
@@ -96,7 +93,7 @@ class PointAddition(val w: Int) extends Module {
 
   // debugging
   //printf(p"--- inside PAdd (${io.outx},${io.outy}), modinvout=${modinv.io.out}, load=${io.load}, valid=${io.valid}, p1inf=${p1inf}, p2inf=${p2inf}\n\n")
-  //printf(p"--- inside PAdd (${io.p1x},${io.p1y}) + (${io.p2x},${io.p2y}) = (${io.outx},${io.outy}), load=${io.load}, valid=${io.valid}\n\n")
+  //printf(p"--- inside PAdd (${p1x},${p1y}) + (${p2x},${p2y}) = (${io.outx},${io.outy}), load=${io.load}, padd.io.valid=${io.valid}, \n\n\n")
 }
 
 /* hardware module that performs ec point additon. */
