@@ -1,6 +1,7 @@
 package MSM
 
 import chisel3._
+import chisel3.util.RegEnable
 
 /** TODO
  * - custom bundle interface for PointAddition
@@ -25,6 +26,13 @@ class PointAddition(val w: Int) extends Module {
     val valid = Output(Bool())
   })
 
+
+  // latch inputs into regs
+  val p1x = RegEnable(io.p1x, 0.S, io.load)
+  val p1y = RegEnable(io.p1y, 0.S, io.load)
+  val p2x = RegEnable(io.p2x, 0.S, io.load)
+  val p2y = RegEnable(io.p2y, 0.S, io.load)
+
   // instantiations
   val modinv = Module(new ModularInverse(w))
   val l = Wire(SInt())
@@ -32,13 +40,13 @@ class PointAddition(val w: Int) extends Module {
   val new_y = Wire(SInt())
 
   // control signals
-  val inverses = io.p1x === io.p2x && io.p1y === -io.p2y
-  val p1inf = io.p1x === 0.S && io.p1y === 0.S
-  val p2inf = io.p2x === 0.S && io.p2y === 0.S
+  val inverses = p1x === p2x && p1y === -p2y
+  val p1inf = p1x === 0.S && p1y === 0.S
+  val p2inf = p2x === 0.S && p2y === 0.S
 
   // default values and assignments
   modinv.io.p := io.p
-  modinv.io.load := io.load
+  modinv.io.load := RegNext(io.load) // delay signal by one cycle bc it takes a cycle to latch velues
   io.outx := 0.S
   io.outy := 0.S
   new_x := 0.S
@@ -46,12 +54,12 @@ class PointAddition(val w: Int) extends Module {
 
   // create new point coordinates, when not dealing w special case
   when (!p1inf && !p2inf && !inverses) {
-    new_x := ((l * l)  - io.p1x - io.p2x) % io.p
+    new_x := ((l * l)  - p1x - p2x) % io.p
     io.outx := new_x
     when (new_x < 0.S) {
       io.outx := new_x + io.p
     }
-    new_y := (l * (io.p1x - new_x) - io.p1y) % io.p
+    new_y := (l * (p1x - new_x) - p1y) % io.p
     io.outy := new_y
     when (new_y < 0.S) {
       io.outy := new_y + io.p
@@ -59,18 +67,18 @@ class PointAddition(val w: Int) extends Module {
   }
   
   // calculate lambda, handle case when P1 == P2
-  modinv.io.a := io.p2x - io.p1x
-  when (io.p1x === io.p2x && io.p1y === io.p2y) { // point double
-    new_x := ((l * l)  - io.p1x - io.p1x) % io.p
-    modinv.io.a := 2.S * io.p1y
-    l := (3.S * io.p1x * io.p1x + io.a) * modinv.io.out
+  modinv.io.a := p2x - p1x
+  when (p1x === p2x && p1y === p2y) { // point double
+    new_x := ((l * l)  - p1x - p1x) % io.p
+    modinv.io.a := 2.S * p1y
+    l := (3.S * p1x * p1x + io.a) * modinv.io.out
   } .otherwise {
-    l := (io.p2y - io.p1y) * modinv.io.out
+    l := (p2y - p1y) * modinv.io.out
   }
 
   // assert valid signal, handles special cases
   io.valid := false.B
-  when (modinv.io.valid) {
+  when (modinv.io.valid && !io.load) {
     io.valid := true.B
   } .elsewhen (inverses) { // output point at infinity
     io.valid := true.B     // when P1 == -P2
@@ -78,16 +86,17 @@ class PointAddition(val w: Int) extends Module {
     io.outy := 0.S
   } .elsewhen (p1inf) {    // p1 is point at inf
     io.valid := true.B
-    io.outx := io.p2x
-    io.outy := io.p2y
+    io.outx := p2x
+    io.outy := p2y
   } .elsewhen (p2inf) {   // p2 is point at inf
     io.valid := true.B
-    io.outx := io.p1x
-    io.outy := io.p1y
+    io.outx := p1x
+    io.outy := p1y
   }
 
   // debugging
-  //printf(p"out = (${io.outx},${io.outy}), modinvout=${modinv.io.out}, valid=${io.valid}, p1inf=${p1inf}\n\n")
+  //printf(p"--- inside PAdd (${io.outx},${io.outy}), modinvout=${modinv.io.out}, load=${io.load}, valid=${io.valid}, p1inf=${p1inf}, p2inf=${p2inf}\n\n")
+  //printf(p"--- inside PAdd (${io.p1x},${io.p1y}) + (${io.p2x},${io.p2y}) = (${io.outx},${io.outy}), load=${io.load}, valid=${io.valid}\n\n")
 }
 
 /* hardware module that performs ec point additon. */
