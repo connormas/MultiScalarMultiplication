@@ -6,3 +6,7 @@
   - data streaming interface (AXI, DMA, ???)
     - how much data is requested from main mem at a time?
     - is it streamed in or latched into regs?
+
+- Future Work?
+  - switch to projective coordinates?
+
