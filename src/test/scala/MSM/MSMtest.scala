@@ -35,7 +35,7 @@ class testfunctions {
     println("\n\n")
   }
 
-  def PointMultTest(dut: PointMult, a: Int, p: Int,
+  def PMNaiveTest(dut: PMNaive, a: Int, p: Int,
                     px: Int, py: Int, s: Int,
                     rx: Int, ry: Int): Unit = {
     println("PM Tests starting: (" + px, py +") * (" + s + ") = (" + rx, ry +")")
@@ -50,18 +50,6 @@ class testfunctions {
     while ((dut.io.valid.peek().litValue() == 0)) dut.clock.step(1)
     dut.io.outx.expect(rx.S)
     dut.io.outy.expect(ry.S)
-  }
-
-  def PointMultWave(dut: PointMult, a: Int, p: Int,
-                    px: Int, py: Int, s: Int): Unit = {
-    dut.io.a.poke(a.S)
-    dut.io.p.poke(p.S)
-    dut.io.px.poke(px.S)
-    dut.io.py.poke(py.S)
-    dut.io.s.poke(s.S)
-    dut.io.load.poke(true.B)
-    dut.clock.step()
-    dut.io.load.poke(false.B)
   }
 }
 
@@ -85,20 +73,20 @@ class WaveformSpec extends FlatSpec with Matchers {
 class MSMtest extends FreeSpec with ChiselScalatestTester {
   val t = new testfunctions()
   "PointMult Tests - manual tests" in {
-    test (new PointMult(32, 32)) { dut =>
-      //t.PointMultTest(dut, 0, 17, 15, 13, 1, 15, 13)
-      t.PointMultTest(dut, 0, 17, 15, 13, 2,  2, 10)
-      t.PointMultTest(dut, 0, 17, 15, 13, 3,  8,  3)
+    test (new PMNaive(32, 32)) { dut =>
+      //t.PMNaiveTest(dut, 0, 17, 15, 13, 1, 15, 13)
+      t.PMNaiveTest(dut, 0, 17, 15, 13, 2,  2, 10)
+      t.PMNaiveTest(dut, 0, 17, 15, 13, 3,  8,  3)
     }
   }
 
   "PointMult Tests - extensive tests" in {
-    test (new PointMult(32, 32)) { dut =>
+    test (new PMNaive(32, 32)) { dut =>
       val p1707 = new EllipticCurve(0, 7, 17)
       val g = new Point(15, 13, p1707) // generator point
       for (i <- 2 until 17)  {
         val r = g * i
-        t.PointMultTest(dut, 0, 17, 15, 13, i, r.x, r.y)
+        t.PMNaiveTest(dut, 0, 17, 15, 13, i, r.x, r.y)
       }
     }
   }

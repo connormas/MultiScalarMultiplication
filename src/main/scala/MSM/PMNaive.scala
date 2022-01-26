@@ -3,7 +3,15 @@ package MSM
 import chisel3._
 import chisel3.util.RegEnable
 
-class PointMult(pw: Int, sw: Int) extends Module {
+
+/** Point Multiplication Module (Naive)
+ * This module performs scalar point multiplication. However, it does this
+ * rather inefficiently. If we wanted to compute P * 12, this module does
+ * P + P + P + P and so on. This faster way to do this, which would constrain
+ * the latency to O(Log2Ceil(scalar)) would be to use the double and add
+ * method, and implementation for which can be found in PMBitSerial.
+ * */
+class PMNaive(pw: Int, sw: Int) extends Module {
   val io = IO(new Bundle {
     val a =  Input(SInt(pw.W))
     val p =  Input(SInt(pw.W))
