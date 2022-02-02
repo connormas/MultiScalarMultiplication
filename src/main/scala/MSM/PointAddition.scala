@@ -5,6 +5,7 @@ import chisel3.util.RegEnable
 
 /** TODO
  * - custom bundle interface for PointAddition
+ * - utilize Option[T] to let this synthesize full adder or just doubler
  * - custom point bundle
  * - is there a faster way to calculate mod inverse?
  * */
@@ -36,6 +37,8 @@ class PointAddition(val w: Int) extends Module {
   val l = Wire(SInt())
   val new_x = Wire(SInt())
   val new_y = Wire(SInt())
+  val validBit = RegEnable(false.B, false.B, io.load)
+  validBit := validBit || io.load
 
   // control signals
   val inverses = p1x === p2x && p1y === -p2y
@@ -75,24 +78,24 @@ class PointAddition(val w: Int) extends Module {
   }
 
   // assert valid signal, handles special cases
-  io.valid := modinv.io.valid && !io.load && !RegNext(io.load)
+  io.valid := modinv.io.valid && !io.load && !RegNext(io.load) && validBit
 
   when (inverses) { // output point at infinity
-    io.valid := true.B     // when P1 == -P2
+    io.valid := true.B && validBit    // when P1 == -P2
     io.outx := 0.S
     io.outy := 0.S
   } .elsewhen (p1inf) {    // p1 is point at inf
-    io.valid := true.B
+    io.valid := true.B && validBit
     io.outx := p2x
     io.outy := p2y
   } .elsewhen (p2inf) {    // p2 is point at inf
-    io.valid := true.B
+    io.valid := true.B && validBit
     io.outx := p1x
     io.outy := p1y
   }
 
   // debugging
-  //printf(p"--- inside PAdd (${io.outx},${io.outy}), modinvout=${modinv.io.out}, load=${io.load}, valid=${io.valid}, p1inf=${p1inf}, p2inf=${p2inf}\n\n")
+  //printf(p"--- inside PAdd (${io.outx},${io.outy}), modinvout=${modinv.io.out}, load=${io.load}, valid=${io.valid}, validBit=${validBit}, p1inf=${p1inf}, p2inf=${p2inf}\n\n")
   //printf(p"--- inside PAdd (${p1x},${p1y}) + (${p2x},${p2y}) = (${io.outx},${io.outy}), load=${io.load}, padd.io.valid=${io.valid}, \n\n\n")
 }
 
