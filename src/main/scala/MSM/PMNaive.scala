@@ -1,6 +1,7 @@
 package MSM
 
 import chisel3._
+import chisel3.internal.naming.chiselName
 import chisel3.util.RegEnable
 
 
@@ -23,6 +24,11 @@ class PMNaive(pw: Int, sw: Int) extends Module {
     val outx = Output(SInt(pw.W))
     val outy = Output(SInt(pw.W))
   })
+
+  // valid bit that determines whether output is valid on start up
+  val validBit = RegEnable(false.B, false.B, io.load)
+  validBit := validBit || io.load
+
 
   // regs to latch x, y, and s values, delay load by 1 cycle
   val x = RegEnable(io.px, 0.S, io.load)
@@ -53,8 +59,18 @@ class PMNaive(pw: Int, sw: Int) extends Module {
   val yres = RegEnable(padd.io.outy, 0.S, padd.io.valid)
   io.outx := xres
   io.outy := yres
-  io.valid := s === 1.S && padd.io.valid
+  io.valid := s === 1.S && padd.io.valid && validBit
 
+  // handle special cases
+  when (io.s === 1.S) {
+    io.valid := true.B && validBit
+    io.outx := io.px
+    io.outy := io.py
+  } .elsewhen (io.s === 0.S) {
+    io.valid := true.B && validBit
+    io.outx := 0.S
+    io.outy := 0.S
+  }
   // update padd inputs, decrement s
   when (s > 1.S && padd.io.valid && !io.load && !delayedLoad) {
     s := s - 1.S
@@ -64,6 +80,6 @@ class PMNaive(pw: Int, sw: Int) extends Module {
 
 
   // debugging
-  //printf(p"--- inside pmult x=${x} y=${y}, xres=${xres}, yres=${yres}, s=${s}, io.load=${io.load} and dl=${delayedLoad} and padd.valid=${padd.io.valid} and dv=${RegNext(padd.io.valid)}, valid=${io.valid}\n")
+  printf(p"--- inside pmult x=${x} y=${y}, xres=${xres}, yres=${yres}, s=${s}, io.load=${io.load} and dl=${delayedLoad} and padd.valid=${padd.io.valid} and dv=${RegNext(padd.io.valid)}, valid=${io.valid}, vb=${validBit}\n")
 }
 
