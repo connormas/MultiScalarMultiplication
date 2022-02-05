@@ -23,7 +23,16 @@ class Point(coord_x: Int, coord_y: Int, ec: EllipticCurve) {
     if (this == that) {
       return this.double()
     }
+
+    if (x == 0 && y == 0) {
+      return that
+    } else if (that.x == 0 && that.y == 0) {
+      return this
+    }
+
+
     val modinv = Util.mod_inverse(that.x - this.x, this.curve.p)
+    if (modinv == -1) return new Point(0, 0, this.curve)
     val l = (that.y - this.y)  * modinv
     var new_x = ((l * l)  - this.x - that.x) % this.curve.p
     if (new_x < 0) {
