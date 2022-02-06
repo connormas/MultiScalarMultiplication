@@ -34,16 +34,29 @@ class TopLevelMSM(pw: Int, sw: Int, a: Int, p: Int,
 
   // Seq (or Vec?) of PointMult Modules
   // make case class or companion object to inline PM module instantiation
-  var PointMults: Seq[PMNaive] = List()
+  // var PointMults: Seq[PMNaive] = List()
+  val PointMults = Vec(requestsize, Module(new PMNaive(pw,sw)).io)
   for (i <- 0 until requestsize) {
-    val pm = Module(new PMNaive(pw, sw))
-    pm.io.a := a.S
-    pm.io.p := p.S
-    pm.io.px := xregseq(i)
-    pm.io.py := yregseq(i)
-    pm.io.s := sregseq(i)
-    pm.io.load := RegNext(io.load)
-    PointMults = PointMults :+ pm
+    PointMults(i).a := a.S
+    PointMults(i).p := p.S
+    PointMults(i).px := xregseq(i)
+    PointMults(i).py := yregseq(i)
+    PointMults(i).s := sregseq(i)
+    PointMults(i).load := RegNext(io.load)
   }
 
+  // Point Addition module to sum up results
+  var pointMultsDone = Wire(false.B)
+  for (i <- 0 until requestsize) {
+    pointMultsDone := pointMultsDone && PointMults(i).valid
+  }
+
+  // PointAddition Reduction
+  val pa = Module(new PointAddition(pw))
+  pa.io.a := a.S
+  pa.io.p := p.S
+  val count = RegInit(requestsize.U)
+  when (pointMultsDone) {
+
+  }
 }
