@@ -38,7 +38,7 @@ class PointAddition(val w: Int) extends Module {
   val new_x = Wire(SInt())
   val new_y = Wire(SInt())
   val validBit = RegEnable(false.B, false.B, io.load)
-  validBit := validBit || io.load
+  validBit := validBit || RegNext(io.load)
 
   // control signals
   val inverses = p1x === p2x && p1y === -p2y
@@ -92,11 +92,15 @@ class PointAddition(val w: Int) extends Module {
     io.valid := true.B && validBit
     io.outx := p1x
     io.outy := p1y
+  } .elsewhen (modinv.io.valid && modinv.io.out === -1.S) { // no mod inverse
+    io.valid := true.B && validBit    // when P1 == -P2
+    io.outx := 0.S
+    io.outy := 0.S
   }
 
   // debugging
   //printf(p"--- inside PAdd (${io.outx},${io.outy}), modinvout=${modinv.io.out}, load=${io.load}, valid=${io.valid}, validBit=${validBit}, p1inf=${p1inf}, p2inf=${p2inf}\n\n")
-  //printf(p"--- inside PAdd (${p1x},${p1y}) + (${p2x},${p2y}) = (${io.outx},${io.outy}), load=${io.load}, padd.io.valid=${io.valid}, \n\n\n")
+  //printf(p"--- inside PAdd (${p1x},${p1y}) + (${p2x},${p2y}) = (${io.outx},${io.outy}), load=${io.load}, padd.io.valid=${io.valid}\n\n\n")
 }
 
 /* hardware module that performs ec point additon. */
@@ -209,7 +213,7 @@ class ModularInverse(val w: Int) extends Module {
   } .elsewhen (condition === 1.S && n < p) {
     io.valid := true.B
   } .elsewhen (n === p) {
-    io.out := 0.S
+    io.out := -1.S
     io.valid := true.B
   }
 
