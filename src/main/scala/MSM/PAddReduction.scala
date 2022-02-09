@@ -4,6 +4,7 @@ import chisel3._
 import chisel3.util.log2Ceil
 import chisel3.util.RegEnable
 
+// dont call load when valid is high!!!
 class PAddReduction(numPoints: Int, pw: Int, a: Int, p: Int) extends Module {
   val io = IO(new Bundle {
     val load = Input(Bool())
@@ -48,7 +49,6 @@ class PAddReduction(numPoints: Int, pw: Int, a: Int, p: Int) extends Module {
     xreg := io.xs(0.U)
     yreg := io.ys(0.U)
   } .elsewhen (encounteredInf && count < numPoints.U) {
-    printf("made it here\n")
     xreg := 0.S
     yreg := 0.S
     pa.io.p1x := xreg
@@ -76,8 +76,10 @@ class PAddReduction(numPoints: Int, pw: Int, a: Int, p: Int) extends Module {
   io.outx := pa.io.outx
   io.outy := pa.io.outy
   io.valid := (count === numPoints.U - 1.U) && pa.io.valid
-  when (io.valid) {
+  when (count === numPoints.U - 1.U && pa.io.valid) {
     count := 1.U
+    //xreg := 0.U
+    //yreg := 0.U
   }
 
   // debugging

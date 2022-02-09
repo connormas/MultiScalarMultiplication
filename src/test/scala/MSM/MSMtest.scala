@@ -67,6 +67,20 @@ class testfunctions {
     dut.io.outy.expect(ry.S)
     dut.io.outx.expect(rx.S)
   }
+
+  def PAReductionTest(dut: PAddReduction, x: Seq[SInt], y: Seq[SInt],
+                      rx: Int, ry: Int): Unit = {
+    x.zipWithIndex foreach { case (s, i) => dut.io.xs(i).poke(s) }
+    y.zipWithIndex foreach { case (s, i) => dut.io.ys(i).poke(s) }
+    dut.io.load.poke(true.B)
+    dut.clock.step()
+    dut.io.load.poke(false.B)
+    //dut.clock.step(10)
+    while ((dut.io.valid.peek().litValue() == 0)) dut.clock.step(1)
+    dut.io.outx.expect(rx.S)
+    dut.io.outy.expect(ry.S)
+    dut.clock.step()
+  }
 }
 
 /*
@@ -88,17 +102,40 @@ class WaveformSpec extends FlatSpec with Matchers {
 
 class MSMtest extends FreeSpec with ChiselScalatestTester {
   val t = new testfunctions()
-  /*"PointMultNaive Tests - manual tests" in {
+
+  "PAdd Reduction Tests - manual tests" in {
+    test (new PAddReduction(4, 16, 0, 17)) { dut =>
+      //val xs0 = Seq(15,  2,  8, 12,  6,  5, 10,  1) map (x => x.S(8.W))
+      //val ys0 = Seq(13, 10,  3,  1,  6,  8, 15, 12) map (y => y.S(8.W))
+      //t.PAReductionTest(dut, xs0, ys0, 1, 5)
+      //val xs1 = Seq(15,  2,  8, 12,  6,  5, 10,  1,  3,  1, 10,  5,  6, 12,  8,  2, 15) map (x => x.S(8.W))
+      //val ys1 = Seq(13, 10,  3,  1,  6,  8, 15, 12,  0,  5,  2,  9, 11, 16, 14,  7,  4) map (y => y.S(8.W))
+      //t.PAReductionTest(dut, xs1, ys1, 3, 0)
+      //println("test that doesnt involve inf")
+      val xs1 = Seq( 1,  3,  8, 12) map (x => x.S(8.W))
+      val ys1 = Seq( 5,  0,  3,  1) map (y => y.S(8.W))
+      t.PAReductionTest(dut, xs1, ys1, 1, 12)
+
+      println("---------------------------------------------")
+
+      //println("\n\ntest that involves inf")
+      val xs0 = Seq( 1,  1,  8, 12) map (x => x.S(8.W))
+      val ys0 = Seq( 5, 12,  3,  1) map (y => y.S(8.W))
+      t.PAReductionTest(dut, xs0, ys0, 10, 15)
+    }
+  }
+
+/*  "PointMultNaive Tests - manual tests" in {
     test (new PMNaive(32, 32)) { dut =>
-      //t.PMNaiveTest(dut, 0, 17, 15, 13, 0,  0,  0)
-      //t.PMNaiveTest(dut, 0, 17, 15, 13, 1, 15, 13)
-      //t.PMNaiveTest(dut, 0, 17, 15, 13, 2,  2, 10)
-      //t.PMNaiveTest(dut, 0, 17, 15, 13, 3,  8,  3)
+      t.PMNaiveTest(dut, 0, 17, 15, 13, 0,  0,  0)
+      t.PMNaiveTest(dut, 0, 17, 15, 13, 1, 15, 13)
+      t.PMNaiveTest(dut, 0, 17, 15, 13, 2,  2, 10)
+      t.PMNaiveTest(dut, 0, 17, 15, 13, 3,  8,  3)
       t.PMNaiveTest(dut, 0, 17, 15, 13, 18,  0, 0)
     }
-  }*/
+  }
 
-  /*"PointMultNaive Tests - extensive tests" in {
+  "PointMultNaive Tests - extensive tests" in {
     test (new PMNaive(32, 32)) { dut =>
       val p1707 = new EllipticCurve(0, 7, 17)
       val g = new Point(15, 13, p1707) // generator point
@@ -116,7 +153,7 @@ class MSMtest extends FreeSpec with ChiselScalatestTester {
     }
   }*/
 
-  "PointAddition Tests - manual tests" in {
+/*  "PointAddition Tests - manual tests" in {
     test (new PointAddition(32)) { dut =>
       //t.PointAdditionTest(dut,  0, 17, 15, 13, 15, 13,  2, 10) // point double
       //t.PointAdditionTest(dut,  0, 17, 15, 13,  2, 10,  8,  3)
@@ -125,21 +162,18 @@ class MSMtest extends FreeSpec with ChiselScalatestTester {
       //t.PointAdditionTest(dut,  0, 17,  3,  0,  6, 11, 12,  1)
       t.PointAdditionTest(dut,  0, 17, 15, 13, 15, 14,  0,  0)   //get back to point at inf
     }
-  }
+  }*/
 
-  "PointAddition Tests - more extensive, utilize functional model" in {
+/*  "PointAddition Tests - more extensive, utilize functional model" in {
     test (new PointAddition(32)) { dut =>
       val p1707 = new EllipticCurve(0, 7, 17)
       val g = new Point(15, 13, p1707) // generator point
-      for (i <- 1 until 18) {
+      val limit = 50
+      for (i <- 0 until limit) {
         val t = g * i
         val r = g + t
-        //println(s"${i}. now testing..")
-        //g.print()
-        //t.print()
-        //r.print()
-        //println()
-        println("PA Tests starting: (" + g.x, g.y +") + (" + t.x, t.y + ") = (" + r.x, r.y +")")
+        if (limit < 20)
+          println("PA Tests starting: (" + g.x, g.y +") + (" + t.x, t.y + ") = (" + r.x, r.y +")")
         dut.io.a.poke(g.curve.a.S)
         dut.io.p.poke(g.curve.p.S)
         dut.io.p1x.poke(g.x.S)
@@ -157,7 +191,7 @@ class MSMtest extends FreeSpec with ChiselScalatestTester {
         }
       }
     }
-  }
+  }*/
 
 
 
