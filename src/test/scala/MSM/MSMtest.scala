@@ -103,25 +103,22 @@ class WaveformSpec extends FlatSpec with Matchers {
 class MSMtest extends FreeSpec with ChiselScalatestTester {
   val t = new testfunctions()
 
-  "PAdd Reduction Tests - manual tests" in {
+  "PAdd Reduction Tests (size 4) - manual tests" in {
     test (new PAddReduction(4, 16, 0, 17)) { dut =>
-      //val xs0 = Seq(15,  2,  8, 12,  6,  5, 10,  1) map (x => x.S(8.W))
-      //val ys0 = Seq(13, 10,  3,  1,  6,  8, 15, 12) map (y => y.S(8.W))
-      //t.PAReductionTest(dut, xs0, ys0, 1, 5)
-      //val xs1 = Seq(15,  2,  8, 12,  6,  5, 10,  1,  3,  1, 10,  5,  6, 12,  8,  2, 15) map (x => x.S(8.W))
-      //val ys1 = Seq(13, 10,  3,  1,  6,  8, 15, 12,  0,  5,  2,  9, 11, 16, 14,  7,  4) map (y => y.S(8.W))
-      //t.PAReductionTest(dut, xs1, ys1, 3, 0)
-      //println("test that doesnt involve inf")
-      val xs1 = Seq( 1,  3,  8, 12) map (x => x.S(8.W))
-      val ys1 = Seq( 5,  0,  3,  1) map (y => y.S(8.W))
-      t.PAReductionTest(dut, xs1, ys1, 1, 12)
-
-      println("---------------------------------------------")
-
-      //println("\n\ntest that involves inf")
       val xs0 = Seq( 1,  1,  8, 12) map (x => x.S(8.W))
       val ys0 = Seq( 5, 12,  3,  1) map (y => y.S(8.W))
       t.PAReductionTest(dut, xs0, ys0, 10, 15)
+      val xs1 = Seq( 1,  3,  8, 12) map (x => x.S(8.W))
+      val ys1 = Seq( 5,  0,  3,  1) map (y => y.S(8.W))
+      t.PAReductionTest(dut, xs1, ys1, 1, 12)
+    }
+  }
+
+  "PAdd Reduction Tests (size 17) - manual tests" in {
+    test (new PAddReduction(17, 16, 0, 17)) { dut =>
+      val xs1 = Seq(15,  2,  8, 12,  6,  5, 10,  1,  3,  1, 10,  5,  6, 12,  8,  2, 15) map (x => x.S(8.W))
+      val ys1 = Seq(13, 10,  3,  1,  6,  8, 15, 12,  0,  5,  2,  9, 11, 16, 14,  7,  4) map (y => y.S(8.W))
+      t.PAReductionTest(dut, xs1, ys1, 3, 0)
     }
   }
 
