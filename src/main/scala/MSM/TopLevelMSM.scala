@@ -25,12 +25,12 @@ class TopLevelMSM(pw: Int, sw: Int, a: Int, p: Int,
     val outy =    Output(SInt(pw.W))
   })
 
-  // Seq of RegEnables, holding Points and Scalars (might need Vecs)
-  val xregseq: Seq[Data] = (0 until requestsize) map (i => RegEnable(io.pointsx(i), 0.S, io.load))
+  // make Seq of Regs, holding Points and Scalars (will need Vecs when decoupling)
+  val xregseq = io.pointsx map {x => RegEnable(x, 0.S, io.load)}
   //val pointsxvec = VecInit(xregseq)
-  val yregseq: Seq[Data] = (0 until requestsize) map (i => RegEnable(io.pointsy(i), 0.S, io.load))
+  val yregseq = io.pointsy map {y => RegEnable(y, 0.S, io.load)}
   //val pointsyvec = VecInit(yregseq)
-  val sregseq: Seq[Data] = (0 until requestsize) map (i => RegEnable(io.scalars(i), 0.S, io.load))
+  val sregseq = io.scalars map {s => RegEnable(s, 0.S, io.load)}
   //val scalarsvec = VecInit(sregseq)
 
 
@@ -43,29 +43,46 @@ class TopLevelMSM(pw: Int, sw: Int, a: Int, p: Int,
     pm.io.px := xregseq(i)
     pm.io.py := yregseq(i)
     pm.io.s := sregseq(i)
-    pm.io.load := RegNext(io.load)
+    pm.io.load := RegNext(RegNext(io.load))
   }
 
   // Point Addition Reduction Module
   val par = Module(new PAddReduction(numPMmodules, pw, a, p))
   PointMults.zipWithIndex foreach { case (pm, i) =>
-    par.io.xs(i) := pm.io.outx
-    par.io.ys(i) := pm.io.outy
-  }
-  //val MultsComplete = PointMults.fold(true.B)( (sig, pm) => sig && pm.io.valid)
-  var MultsComplete = true.B
-  PointMults foreach { pm =>
-    MultsComplete = MultsComplete && pm.io.valid
+    par.io.xs(i) := xregseq(i)
+    par.io.ys(i) := yregseq(i)
   }
 
-  par.io.load := RegNext(MultsComplete) // load when all PMults are complete
+  // count up number of complete mults
+  val MultsComplete = RegInit(0.U(log2Ceil(numPMmodules).W))
+  PointMults.zipWithIndex foreach { case (pm, i) =>
+    when (pm.io.valid) {
+      MultsComplete := MultsComplete + 1.U
+      xregseq(i) := pm.io.outx // capture outputs
+      yregseq(i) := pm.io.outy
+    }
+  }
+
+  // start reduction when all mults are complete
+  // use edge detector (more of a 'wrap detector')
+  val curr = Reg(UInt(log2Ceil(numPMmodules).W))
+  val prev = Reg(UInt(log2Ceil(numPMmodules).W))
+  curr := MultsComplete
+  prev := curr
+  par.io.load := RegNext(curr === 0.U && prev === numPMmodules.U - 1.U)
 
   io.outx := par.io.outx
   io.outy := par.io.outy
-  io.valid := RegNext(io.load)
+  io.valid := par.io.valid
 
   // debugging
-  xregseq foreach (x => printf(p"${x}"))
+  printf(p"MultsComplete=${MultsComplete}  ")
+  PointMults foreach (pm => printf(p"| ${pm.io.valid} (${pm.io.outx}${pm.io.outy}) |"))
   printf("\n")
+  xregseq zip yregseq foreach { case (x, y) => printf(p"(${x},${y}) ")}
+  printf("\n")
+  printf(p"par.load=${par.io.load} -> ")
+  par.io.xs.zip(par.io.ys) foreach { case (x, y) => printf(p"(${x},${y}) ")}
+  printf(p" -> (${par.io.outx},${par.io.outy})\n")
   //printf(p"TLMSM -> load=${io.load} multscomplet=${MultsComplete}\n")
 }
