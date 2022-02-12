@@ -75,11 +75,23 @@ class testfunctions {
     dut.io.load.poke(true.B)
     dut.clock.step()
     dut.io.load.poke(false.B)
-    //dut.clock.step(10)
     while ((dut.io.valid.peek().litValue() == 0)) dut.clock.step(1)
     dut.io.outx.expect(rx.S)
     dut.io.outy.expect(ry.S)
     dut.clock.step()
+  }
+
+  def TopLevelTest(dut: TopLevelMSM, x: Seq[SInt], y: Seq[SInt], s: Seq[SInt],
+                  rx: Int, ry: Int): Unit = {
+    x.zipWithIndex foreach { case (x, i) => dut.io.pointsx(i).poke(x) }
+    y.zipWithIndex foreach { case (y, i) => dut.io.pointsy(i).poke(y) }
+    s.zipWithIndex foreach { case (s, i) => dut.io.scalars(i).poke(s) }
+    dut.io.load.poke(true.B)
+    dut.clock.step()
+    dut.io.load.poke(false.B)
+    while ((dut.io.valid.peek().litValue() == 0)) dut.clock.step(1)
+    dut.io.outx.expect(rx.S)
+    dut.io.outy.expect(ry.S)
   }
 }
 
@@ -103,6 +115,15 @@ class WaveformSpec extends FlatSpec with Matchers {
 class MSMtest extends FreeSpec with ChiselScalatestTester {
   val t = new testfunctions()
 
+  "TopLevelMSM Tests (size 4) - manual tests" in {
+    test (new TopLevelMSM(16, 16, 0, 17, 4, 4)) { dut =>
+      val xs = Seq( 1,  1,  8, 12) map (x => x.S(8.W))
+      val ys = Seq( 5, 12,  3,  1) map (y => y.S(8.W))
+      val ss = Seq( 2, 4,  6,  8) map (y => y.S(8.W))
+      t.TopLevelTest(dut, xs, ys, ss, 5, 9)
+    }
+  }
+
   "PAdd Reduction Tests (size 4) - manual tests" in {
     test (new PAddReduction(4, 16, 0, 17)) { dut =>
       val xs0 = Seq( 1,  1,  8, 12) map (x => x.S(8.W))
@@ -111,6 +132,9 @@ class MSMtest extends FreeSpec with ChiselScalatestTester {
       val xs1 = Seq( 1,  3,  8, 12) map (x => x.S(8.W))
       val ys1 = Seq( 5,  0,  3,  1) map (y => y.S(8.W))
       t.PAReductionTest(dut, xs1, ys1, 1, 12)
+      val xs2 = Seq( 2, 12,  0, 12) map (x => x.S(8.W))
+      val ys2 = Seq(10, 16,  0, 16) map (y => y.S(8.W))
+      t.PAReductionTest(dut, xs2, ys2, 5, 9)
     }
   }
 
@@ -150,16 +174,19 @@ class MSMtest extends FreeSpec with ChiselScalatestTester {
     }
   }*/
 
-/*  "PointAddition Tests - manual tests" in {
+  "PointAddition Tests - manual tests" in {
     test (new PointAddition(32)) { dut =>
       //t.PointAdditionTest(dut,  0, 17, 15, 13, 15, 13,  2, 10) // point double
       //t.PointAdditionTest(dut,  0, 17, 15, 13,  2, 10,  8,  3)
       //t.PointAdditionTest(dut,  0, 17,  0,  0,  6, 11,  6, 11) // p1 at inf
       //t.PointAdditionTest(dut,  0, 17, 15, 13,  0,  0, 15, 13) // p2 at inf
       //t.PointAdditionTest(dut,  0, 17,  3,  0,  6, 11, 12,  1)
-      t.PointAdditionTest(dut,  0, 17, 15, 13, 15, 14,  0,  0)   //get back to point at inf
+      //t.PointAdditionTest(dut,  0, 17, 15, 13, 15, 14,  0,  0)   //get back to point at inf
+      //t.PointAdditionTest(dut,  0, 17, 2, 10, 12, 16,  2,  7)   //get back to point at inf
+      //t.PointAdditionTest(dut,  0, 17, 2, 7, 0, 0,  2,  7)   //get back to point at inf
+      //t.PointAdditionTest(dut,  0, 17, 2, 7, 12, 16,  5, 9)   //get back to point at inf
     }
-  }*/
+  }
 
 /*  "PointAddition Tests - more extensive, utilize functional model" in {
     test (new PointAddition(32)) { dut =>
