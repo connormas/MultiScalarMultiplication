@@ -45,6 +45,7 @@ class PAddReduction(numPoints: Int, pw: Int, a: Int, p: Int) extends Module {
 
   // did we end up with the Point at Infinity?
   val encounteredInf = pa.io.valid && pa.io.outx === 0.S && pa.io.outy === 0.S
+  val infinput = io.xs(count) === 0.S && io.ys(count) === 0.S
 
   // update when necessary
   when(io.load && count === 1.U) {
@@ -55,6 +56,7 @@ class PAddReduction(numPoints: Int, pw: Int, a: Int, p: Int) extends Module {
     xreg := io.xs(0.U)
     yreg := io.ys(0.U)
   } .elsewhen (encounteredInf && count < numPoints.U) {
+    //printf("MADE IT HERE----------------------------------------------\n")
     xreg := 0.S
     yreg := 0.S
     pa.io.p1x := xreg
@@ -62,6 +64,13 @@ class PAddReduction(numPoints: Int, pw: Int, a: Int, p: Int) extends Module {
     pa.io.p2x := io.xs(count)
     pa.io.p2y := io.ys(count)
     count := count
+  } .elsewhen (infinput && count === numPoints.U - 2.U) {
+    //printf("\nTHIS CASE ----------------------------------------------\n\n")
+    pa.io.p1x := xreg
+    pa.io.p1y := yreg
+    pa.io.p2x := io.xs(count + 1.U)
+    pa.io.p2y := io.ys(count + 1.U)
+    count := count + 1.U
   } .elsewhen (count < numPoints.U) {
     pa.io.p1x := xreg
     pa.io.p1y := yreg
@@ -86,6 +95,6 @@ class PAddReduction(numPoints: Int, pw: Int, a: Int, p: Int) extends Module {
 
   // debugging
   //printf(p"padd reduction -> load=${io.load} count=${count}, x,y=(${xreg},${yreg}), p1(${pa.io.p1x},${pa.io.p1y}), p2(${pa.io.p2x}${pa.io.p2y}) pa.valid=${pa.io.valid} paout(${pa.io.outx},${pa.io.outy})\n")
-  //printf(p"padd reduction -> count=${count}, load=${io.load} pa.load=${pa.io.load}, x,y=(${xreg},${yreg}), p1(${pa.io.p1x},${pa.io.p1y}), p2(${pa.io.p2x}${pa.io.p2y}) pa.valid=${pa.io.valid} paout(${pa.io.outx},${pa.io.outy})\n")
+  //printf(p"padd reduction -> count=${count}, load=${io.load} pa.load=${pa.io.load}, x,y=(${xreg},${yreg}), p1(${pa.io.p1x},${pa.io.p1y}), p2(${pa.io.p2x}${pa.io.p2y}) pa.valid=${pa.io.valid} paout(${pa.io.outx},${pa.io.outy}) io.valid(${io.valid})\n")
 
 }
