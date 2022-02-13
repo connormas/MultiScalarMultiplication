@@ -51,7 +51,7 @@ object Util {
    * (right now, we are just doing this with two int vectors to verify
    * that it is working properly.)
    */
-  def zksnarkMSM_model(g: List[Int], e: List[Int]): Int = {
+  def zksnarkMSM_model(g: List[Point], e: List[Int]): Point = {
     assert(g.length == e.length, "vectors should be the same length")
     // multipy corresponding indexes of arrays and sum them up
     g zip e map { case (gi, ei) => gi * ei } reduce {_ + _}
