@@ -71,18 +71,39 @@ class TopLevelMSM(pw: Int, sw: Int, a: Int, p: Int,
   prev := curr
   par.io.load := RegNext(curr === 0.U && prev === numPMmodules.U - 1.U)
 
-  io.outx := par.io.outx
-  io.outy := par.io.outy
-  io.valid := par.io.valid
+  // latch reduction results
+  val xoutput = RegEnable(par.io.outx, 0.S, par.io.valid)
+  val youtput = RegEnable(par.io.outy, 0.S, par.io.valid)
+
+  // reset sum logic
+  val resetsum = Reg(Bool())
+  resetsum := io.complete && io.load  && !RegNext(io.complete) && !RegNext(io.load) // edge detector
+  val resetonthiscycle = RegInit(false.B)
+  resetonthiscycle := resetonthiscycle || resetsum
+
+  /*val pa = Module(new PointAddition(pw))
+  pa.io.a := a.S
+  pa.io.p := p.S
+  pa.io.p1x := xoutput
+  pa.io.p1x := youtput
+  pa.io.p2x := par.io.outx
+  pa.io.p2y := par.io.outy
+  pa.io.load := RegNext(par.io.valid)*/
+
+
+  io.outx := xoutput
+  io.outy := youtput
+
+  io.valid := RegNext(par.io.valid)
 
   // debugging
-  printf(p"MultsComplete=${MultsComplete}  ")
+  /*printf(p"MultsComplete=${MultsComplete}  ")
   PointMults foreach (pm => printf(p"| ${pm.io.valid} (${pm.io.outx}${pm.io.outy}) |"))
   printf("\n")
   xregseq zip yregseq foreach { case (x, y) => printf(p"(${x},${y}) ")}
   printf("\n")
   printf(p"par.load=${par.io.load} -> ")
   par.io.xs.zip(par.io.ys) foreach { case (x, y) => printf(p"(${x},${y}) ")}
-  printf(p" -> (${par.io.outx},${par.io.outy})\n")
+  printf(p" -> (${par.io.outx},${par.io.outy})\n")*/
   //printf(p"TLMSM -> load=${io.load} multscomplet=${MultsComplete}\n")
 }

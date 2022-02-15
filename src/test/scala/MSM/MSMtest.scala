@@ -124,6 +124,19 @@ class MSMtest extends FreeSpec with ChiselScalatestTester {
     }
   }
 
+  /*"TopLevelMSM Tests (size 8) - manual tests" in {
+    test (new TopLevelMSM(16, 16, 0, 17, 8, 8)) { dut =>
+      val points = Seq(Seq(15,13),Seq(8,3),Seq(1,5),Seq(12,16),
+                       Seq(2,10),Seq(6,6),Seq(1,12),Seq(5,9),
+                       Seq(2,7),Seq(12,1),Seq(1,12),Seq(6,6),
+                       Seq(8,3),Seq(2,10),Seq(8,14),Seq(10,2))
+      val scalars = Seq(4,5,6,34, 2,5,6,7, 8,4,2,1, 3,23,5,75)
+      val xs = points map { case Seq(x, y) => x }
+      val ys = points map { case Seq(x, y) => y }
+      //t.TopLevelTest(dut, xs, ys, scalars, )
+    }
+  }*/
+
   "PAdd Reduction Tests (size 4) - manual tests" in {
     test (new PAddReduction(4, 16, 0, 17)) { dut =>
       val xs0 = Seq( 1,  1,  8, 12) map (x => x.S(8.W))
