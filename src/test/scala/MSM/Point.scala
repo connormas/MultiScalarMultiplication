@@ -14,8 +14,14 @@ class Point(coord_x: Int, coord_y: Int, ec: EllipticCurve) {
 
   def double() = {
     val l = (3 * this.x * this.x + this.curve.a) * Util.mod_inverse(2 * this.y, this.curve.p)
-    val new_x = ((l * l)  - this.x - this.x) % this.curve.p
-    val new_y = ((l * (this.x - new_x)) - this.y) % this.curve.p
+    var new_x = ((l * l)  - this.x - this.x) % this.curve.p
+    if (new_x < 0) {
+      new_x = new_x + this.curve.p
+    }
+    var new_y = ((l * (this.x - new_x)) - this.y) % this.curve.p
+    if (new_y < 0) {
+      new_y = new_y + this.curve.p
+    }
     new Point(new_x, new_y, this.curve)
   }
 
