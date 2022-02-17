@@ -1,0 +1,10 @@
+Number of Point Multipliers: 1
+Number of Point Multipliers: 2
+Number of Point Multipliers: 4
+Number of Point Multipliers: 8
+Number of Point Multipliers: 16
+Number of Point Multipliers: 32
+Number of Point Multipliers: 64
+Number of Point Multipliers: 128
+Number of Point Multipliers: 256
+Number of Point Multipliers: 512

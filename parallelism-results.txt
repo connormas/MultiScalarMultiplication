@@ -1,0 +1,15 @@
+(PMNaive Tests starting: (12,16) * (34) = (1,12))
+test PMNaive Success: 0 tests passed in 426 cycles in 0.572414 seconds 744.22 Hz
+--
+(PMNaive Tests starting: (1,12) * (6) = (5,9))
+test PMNaive Success: 0 tests passed in 80 cycles in 0.057954 seconds 1380.41 Hz
+(PMNaive Tests starting: (12,16) * (34) = (1,12))
+test PMNaive Success: 0 tests passed in 426 cycles in 0.547392 seconds 778.24 Hz
+--
+(PMNaive Tests starting: (1,12) * (6) = (5,9))
+test PMNaive Success: 0 tests passed in 80 cycles in 0.056077 seconds 1426.62 Hz
+(PMNaive Tests starting: (12,16) * (34) = (1,12))
+test PMNaive Success: 0 tests passed in 426 cycles in 0.598045 seconds 712.32 Hz
+--
+(PMNaive Tests starting: (1,12) * (6) = (5,9))
+test PMNaive Success: 0 tests passed in 80 cycles in 0.047994 seconds 1666.87 Hz
