@@ -45,7 +45,7 @@ object Util {
    * One vectors of scalars, and another vector of points. It multiplies each
    * scalar by its corresponding point and them sums up all the points.
    */
-  def zksnarkMSM_model(g: List[Point], e: List[Int]): Point = {
+  def zksnarkMSM_model(g: Seq[Point], e: Seq[Int]): Point = {
     assert(g.length == e.length, "vectors should be the same length")
     // multipy corresponding indexes of arrays and sum them up
     g zip e map { case (gi, ei) => gi * ei } reduce {_ + _}
