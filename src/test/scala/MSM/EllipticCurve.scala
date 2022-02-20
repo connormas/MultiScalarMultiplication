@@ -1,4 +1,4 @@
-package PippengerModel
+package MSM
 
 /**
  * This is an elliptic curve class that tracks a curves
@@ -10,9 +10,9 @@ package PippengerModel
  * param P: order of the finite field, hopefully prime
  * param G: generator point for this curve
  */
-class EllipticCurve(A: Int, B: Int, P: Int) { //G: Point) {
-  val a: Int = A
-  val b: Int = B
-  val p: Int = P
+class EllipticCurve(A: BigInt, B: BigInt, P: BigInt) {
+  val a: BigInt = A
+  val b: BigInt = B
+  val p: BigInt = P
   //val g: Point = G
 }
