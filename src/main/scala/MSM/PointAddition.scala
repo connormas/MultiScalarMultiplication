@@ -7,7 +7,7 @@ import chisel3.util.RegEnable
  * - custom bundle interface for PointAddition
  * - utilize Option[T] to let this synthesize full adder or just doubler
  * - custom point bundle
- * - is there a faster way to calculate mod inverse?
+ * - mod inverse with gcd method
  * */
 
 
@@ -47,7 +47,7 @@ class PointAddition(val w: Int) extends Module {
 
   // default values and assignments
   modinv.io.p := io.p
-  modinv.io.load := RegNext(io.load) // delay signal by one cycle bc it takes a cycle to latch velues
+  modinv.io.load := RegNext(io.load) // takes a cycle to latch inputs
   io.outx := 0.S
   io.outy := 0.S
   new_x := 0.S
@@ -80,15 +80,15 @@ class PointAddition(val w: Int) extends Module {
   // assert valid signal, handles special cases
   io.valid := modinv.io.valid && !io.load && !RegNext(io.load) && validBit
 
-  when (inverses) { // output point at infinity
+  when (RegNext(inverses)) { // output point at infinity
     io.valid := true.B && validBit    // when P1 == -P2
     io.outx := 0.S
     io.outy := 0.S
-  } .elsewhen (p1inf) {    // p1 is point at inf
+  } .elsewhen (RegNext(p1inf)) {    // p1 is point at inf
     io.valid := true.B && validBit
     io.outx := p2x
     io.outy := p2y
-  } .elsewhen (p2inf) {    // p2 is point at inf
+  } .elsewhen (RegNext(p2inf)) {    // p2 is point at inf
     io.valid := true.B && validBit
     io.outx := p1x
     io.outy := p1y
@@ -99,86 +99,11 @@ class PointAddition(val w: Int) extends Module {
   }
 
   // debugging
-  //printf(p"--- inside PAdd (${io.outx},${io.outy}), modinvout=${modinv.io.out}, load=${io.load}, valid=${io.valid}, validBit=${validBit}, p1inf=${p1inf}, p2inf=${p2inf}\n\n")
+  //when (RegNext(io.load)) {
+  //  printf(p"padd -> (${p1x}${p1y})\n(${p2x}${p2y})\n")
+  //}
+  //printf(p"--- inside PAdd modinvout=${modinv.io.out}, load=${io.load}, valid=${io.valid}, validBit=${validBit}, p1inf=${p1inf}, p2inf=${p2inf}\n\n")
   //printf(p"--- inside PAdd (${p1x},${p1y}) + (${p2x},${p2y}) = (${io.outx},${io.outy}), load=${io.load}, padd.io.valid=${io.valid}\n\n\n")
-}
-
-/* hardware module that performs ec point additon. */
-class PointAdditionB(val w: Int) extends Module {
-  val io = IO(new Bundle {
-    val a =     Input(SInt(w.W))
-    val p =     Input(SInt(w.W))
-    val p1 =    Input(new PointBundle(w))
-    val p2 =    Input(new PointBundle(w))
-    val load =  Input(Bool())
-    val outx =  Output(SInt(w.W))
-    val outy =  Output(SInt(w.W))
-    val valid = Output(Bool())
-  })
-
-  // instantiations
-  val modinv = Module(new ModularInverse(w))
-  val l = Wire(SInt())
-  val new_x = Wire(SInt())
-  val new_y = Wire(SInt())
-
-  // control signals
-  val inverses = io.p1.x === io.p2.x && io.p1.y === -io.p2.y
-  val p1inf = io.p1.x === 0.S && io.p1.y === 0.S
-  val p2inf = io.p2.x === 0.S && io.p2.y === 0.S
-
-  // default values and assignments
-  modinv.io.p := io.p
-  modinv.io.load := io.load
-  io.outx := 0.S
-  io.outy := 0.S
-  new_x := 0.S
-  new_y := 0.S
-
-  // create new point coordinates, when not dealing w special case
-  when (!p1inf && !p2inf && !inverses) {
-    new_x := ((l * l)  - io.p1.x - io.p2.x) % io.p
-    io.outx := new_x
-    when (new_x < 0.S) {
-      io.outx := new_x + io.p
-    }
-    new_y := (l * (io.p1.x - new_x) - io.p1.y) % io.p
-    io.outy := new_y
-    when (new_y < 0.S) {
-      io.outy := new_y + io.p
-    }
-  }
-
-  // calculate lambda, handle case when P1 == P2
-  modinv.io.a := io.p2.x - io.p1.x
-  when (io.p1.x === io.p2.x && io.p1.y === io.p2.y) { // point double
-    new_x := ((l * l)  - io.p1.x - io.p1.x) % io.p
-    modinv.io.a := 2.S * io.p1.y
-    l := (3.S * io.p1.x * io.p1.x + io.a) * modinv.io.out
-  } .otherwise {
-    l := (io.p2.y - io.p1.y) * modinv.io.out
-  }
-
-  // assert valid signal, handles special cases
-  io.valid := false.B
-  when (modinv.io.valid) {
-    io.valid := true.B
-  } .elsewhen (inverses) { // output point at infinity
-    io.valid := true.B     // when P1 == -P2
-    io.outx := 0.S
-    io.outy := 0.S
-  } .elsewhen (p1inf) {    // p1 is point at inf
-    io.valid := true.B
-    io.outx := io.p2.x
-    io.outy := io.p2.y
-  } .elsewhen (p2inf) {   // p2 is point at inf
-    io.valid := true.B
-    io.outx := io.p1.x
-    io.outy := io.p1.y
-  }
-
-  // debugging
-  //printf(p"out = (${io.outx},${io.outy}), modinvout=${modinv.io.out}, valid=${io.valid}, p1inf=${p1inf}\n\n")
 }
 
 
@@ -217,6 +142,6 @@ class ModularInverse(val w: Int) extends Module {
     io.valid := true.B
   }
 
-  // use when debugging ModularInverse() only
+  // debugging
   //printf(p"a=${a}, p=${p}, n=${n}, valid=${io.valid}\n\n")
 }
