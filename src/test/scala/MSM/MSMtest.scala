@@ -17,11 +17,9 @@ class testfunctions {
   def PointAdditionTest(dut: PointAddition, a: Int, p: Int,
                         p1x: Int, p1y: Int, p2x: Int, p2y: Int,
                         rx: Int, ry: Int): Unit = {
-    println("PA Tests starting: (" + p1x, p1y +") + (" + p2x, p2y + ") = (" + rx, ry +")")
+    //println("PA Tests starting: (" + p1x, p1y +") + (" + p2x, p2y + ") = (" + rx, ry +")")
     dut.io.a.poke(a.S)
     dut.io.p.poke(p.S)
-    //val p1 = new PointBundle(32) // how to initialize values?
-    //val p2 = new PointBundle(32)
     dut.io.p1x.poke(p1x.S)
     dut.io.p1y.poke(p1y.S)
     dut.io.p2x.poke(p2x.S)
@@ -49,8 +47,10 @@ class testfunctions {
     dut.clock.step()
     dut.io.load.poke(false.B)
     while ((dut.io.valid.peek().litValue() == 0)) dut.clock.step(1)
-    dut.io.outx.expect(rx.S)
+    //dut.clock.step(3)
     dut.io.outy.expect(ry.S)
+    dut.io.outx.expect(rx.S)
+    //dut.clock.step(3)
   }
 
   def PMBSTest(dut: PMBitSerial, a: Int, p: Int,
@@ -70,7 +70,7 @@ class testfunctions {
     dut.io.outx.expect(rx.S)
   }
 
-  def PAReductionTest(dut: PAddReduction, x: Seq[SInt], y: Seq[SInt],
+  def PAReductionTest(dut: PAddReduction2, x: Seq[SInt], y: Seq[SInt],
                       rx: Int, ry: Int): Unit = {
     x.zipWithIndex foreach { case (s, i) => dut.io.xs(i).poke(s) }
     y.zipWithIndex foreach { case (s, i) => dut.io.ys(i).poke(s) }
@@ -155,14 +155,24 @@ class WaveformSpec extends FlatSpec with Matchers {
 class MSMtest extends FreeSpec with ChiselScalatestTester {
   val t = new testfunctions()
 
-  /*"TopLevelMSM Tests (size 4) - manual tests" in {
-    test(new TopLevelMSM(16, 16, 0, 17, 4, 4)) { dut =>
-      val xs = Seq(1, 1, 8, 12) map (x => x.S(8.W))
-      val ys = Seq(5, 12, 3, 1) map (y => y.S(8.W))
+  "TopLevelMSM Tests (size 4) - manual tests" in {
+    test(new TopLevelMSM(8, 8, 0, 17, 4, 4)) { dut =>
+      val xs = Seq(1, 5, 6, 12) map (x => x.S(8.W))
+      val ys = Seq(5, 9, 6, 1) map (y => y.S(8.W))
       val ss = Seq(2, 4, 6, 8) map (y => y.S(8.W))
-      t.TopLevelTest(dut, xs, ys, ss, 5, 9)
+      t.TopLevelTest(dut, xs, ys, ss, 12, 1)
     }
-  }*/
+  }
+
+  "TopLevelMSM Tests (size 8) - manual tests" in {
+    test(new TopLevelMSM(8, 8, 0, 17, 8, 8)) { dut =>
+      val xs = Seq(1, 5, 6, 12, 5, 2, 1, 10) map (x => x.S(8.W))
+      val ys = Seq(5, 9, 6, 1, 8, 7, 12, 15) map (y => y.S(8.W))
+      val ss = Seq(2, 4, 6, 8, 1, 3, 5, 7) map (y => y.S(8.W))
+      t.TopLevelTest(dut, xs, ys, ss, 8, 3)
+      t.TopLevelTest(dut, xs, ys, ss, 8, 3) // do it again?
+    }
+  }
 
   /*"TopLevelMSM Tests (size 8) - manual tests" in {
     test (new TopLevelMSM(16, 16, 0, 17, 8, 8)) { dut =>
@@ -212,43 +222,48 @@ class MSMtest extends FreeSpec with ChiselScalatestTester {
     }
   }*/
 
-  /*"PAdd Reduction Tests (size 4) - manual tests" in {
-    test (new PAddReduction(4, 16, 0, 17)) { dut =>
-      val xs0 = Seq( 1,  1,  8, 12) map (x => x.S(8.W))
-      val ys0 = Seq( 5, 12,  3,  1) map (y => y.S(8.W))
-      t.PAReductionTest(dut, xs0, ys0, 10, 15)
+  "PAdd Reduction Tests (size 4) - manual tests" in {
+    test (new PAddReduction2(4, 16, 0, 17)) { dut =>
+      //val xs0 = Seq( 1,  1,  8, 12) map (x => x.S(8.W))
+      //val ys0 = Seq( 5, 12,  3,  1) map (y => y.S(8.W))
+      //t.PAReductionTest(dut, xs0, ys0, 10, 15)
       val xs1 = Seq( 1,  3,  8, 12) map (x => x.S(8.W))
       val ys1 = Seq( 5,  0,  3,  1) map (y => y.S(8.W))
       t.PAReductionTest(dut, xs1, ys1, 1, 12)
-      val xs2 = Seq( 2, 12,  0, 12) map (x => x.S(8.W))
-      val ys2 = Seq(10, 16,  0, 16) map (y => y.S(8.W))
-      t.PAReductionTest(dut, xs2, ys2, 5, 9)
+      //val xs2 = Seq( 2, 12,  0, 12) map (x => x.S(8.W))
+      //val ys2 = Seq(10, 16,  0, 16) map (y => y.S(8.W))
+      //t.PAReductionTest(dut, xs2, ys2, 5, 9)
     }
-  }*/
+  }
 
-  /*"PAdd Reduction Tests (size 17) - manual tests" in {
-    test (new PAddReduction(17, 16, 0, 17)) { dut =>
+  "PAdd Reduction Tests (size 17) - manual tests" in {
+    test (new PAddReduction2(17, 16, 0, 17)) { dut =>
       val xs1 = Seq(15,  2,  8, 12,  6,  5, 10,  1,  3,  1, 10,  5,  6, 12,  8,  2, 15) map (x => x.S(8.W))
       val ys1 = Seq(13, 10,  3,  1,  6,  8, 15, 12,  0,  5,  2,  9, 11, 16, 14,  7,  4) map (y => y.S(8.W))
       t.PAReductionTest(dut, xs1, ys1, 3, 0)
     }
-  }*/
+  }
 
-  /*"PointMultNaive Tests - manual tests" in {
+  "PointMultNaive Tests - manual tests" in {
     test (new PMNaive(32, 32)) { dut =>
-      //t.PMNaiveTest(dut, 0, 17, 15, 13, 0,  0,  0)
-      //t.PMNaiveTest(dut, 0, 17, 15, 13, 1, 15, 13)
+      //t.PMNaiveTest(dut, 0, 17, 15, 13, 0,  0,  0)  // mult by zero
+      //t.PMNaiveTest(dut, 0, 17, 15, 13, 1, 15, 13)  // mult by 1
       //t.PMNaiveTest(dut, 0, 17, 15, 13, 2,  2, 10)
       //t.PMNaiveTest(dut, 0, 17, 15, 13, 3,  8,  3)
-      //t.PMNaiveTest(dut, 0, 17, 15, 13, 18,  0, 0)
+      //t.PMNaiveTest(dut, 0, 17, 15, 13, 18,  0, 0) // back to point at inf
+      //t.PMNaiveTest(dut, 0, 17, 15, 13, 17,  15, 4) // back to point at inf
+      //t.PMNaiveTest(dut, 0, 17, 15, 13, 19,  15, 13) // back to point at inf
       //t.PMNaiveTest(dut, 0, 17, 12, 16, 8,  12, 1)
       //t.PMNaiveTest(dut, 0, 17, 12, 16, 9, 0, 0)
-      //t.PMNaiveTest(dut, 0, 17, 12, 16, 19, 12, 16)
-      t.PMNaiveTest(dut, 0, 17, 12, 16, 34,  1, 12)
+      //t.PMNaiveTest(dut, 0, 17, 12, 16, 10, 12, 16) // this shit
+      //t.PMNaiveTest(dut, 0, 17, 12, 16, 11, 1, 5)
+      //t.PMNaiveTest(dut, 0, 17, 12, 16, 29, 1, 5)
+      //t.PMNaiveTest(dut, 0, 17, 12, 16, 34,  1, 12)
+      //t.PMNaiveTest(dut, 0, 17, 12, 16, 35,  12, 1)
       //t.PMNaiveTest(dut, 0, 17, 1, 12, 6, 5, 9)
-      //t.PMNaiveTest(dut, 0, 17, 5, 9, 7, 5, 9)
+      t.PMNaiveTest(dut, 0, 17, 5, 9, 7, 5, 9)
     }
-  }*/
+  }
 
   /*"PointMultNaive Tests - extensive tests" in {
     test (new PMNaive(32, 32)) { dut =>
@@ -261,12 +276,6 @@ class MSMtest extends FreeSpec with ChiselScalatestTester {
     }
   }*/
 
-  /*"PointMultBitSerial Tests - manual tests" in {
-    test (new PMBitSerial(8, 8)) { dut =>
-      t.PMBSTest(dut, 0, 17, 15, 13, 5,  2, 10)
-      dut.clock.step(5)
-    }
-  }*/
 
   "PointAddition Tests - manual tests" in {
     test (new PointAddition(32)) { dut =>
@@ -279,6 +288,8 @@ class MSMtest extends FreeSpec with ChiselScalatestTester {
       t.PointAdditionTest(dut,  0, 17, 2, 10, 12, 16,  2,  7)   //get back to point at inf
       t.PointAdditionTest(dut,  0, 17, 2, 7, 0, 0,  2,  7)   //get back to point at inf
       t.PointAdditionTest(dut,  0, 17, 2, 7, 12, 16,  5, 9)   //get back to point at inf
+      t.PointAdditionTest(dut,  0, 17, 15, 13,  15, 4,  0, 0)
+      t.PointAdditionTest(dut,  0, 17, 1, 5,  1, 12,  0, 0)
     }
   }
 
