@@ -3,6 +3,7 @@ package MSM
 import chisel3._
 import chisel3.util.log2Ceil
 import chisel3.util.RegEnable
+import chisel3.util._
 
 /**
  * Point Addition Reduction Module
@@ -59,12 +60,12 @@ class PAddReduction(numPoints: Int, pw: Int, a: Int, p: Int) extends Module {
   pa.io.load := RegNext(io.load) || RegNext(pa.io.valid)
 
   // debugging
-  /*when ((io.load) || RegNext(io.load)) {
+  when ((io.load) || RegNext(io.load)) {
     io.xs zip io.ys foreach { case (x, y) => printf(p"(${x},${y}) ") }
-    printf(p" count=${count}\n")
+    printf(p" PADDREDUCTION count=${count}\n")
     xvec zip yvec foreach { case (x, y) => printf(p"(${x},${y}) ") }
-    printf(p" count=${count}\n")
-  }*/
+    printf(p" PADDREDUCTION count=${count}\n")
+  }
 
 
   // did we end up with the Point at Infinity?
@@ -135,8 +136,139 @@ class PAddReduction(numPoints: Int, pw: Int, a: Int, p: Int) extends Module {
   }
 
   // debugging
-  //printf(p"padd reduction -> output=(${pa.io.outx},${pa.io.outy} pa.valid=${pa.io.valid} valid=${io.valid}\n")
-  //printf(p"padd reduction -> load=${io.load} count=${count}, x,y=(${xreg},${yreg}), p1(${pa.io.p1x},${pa.io.p1y}), p2(${pa.io.p2x}${pa.io.p2y}) pa.valid=${pa.io.valid} paout(${pa.io.outx},${pa.io.outy})\n")
-  //printf(p"padd reduction -> count=${count}, load=${io.load} pa.load=${pa.io.load}, x,y=(${xreg},${yreg}), p1(${pa.io.p1x},${pa.io.p1y}), p2(${pa.io.p2x}${pa.io.p2y}) pa.valid=${pa.io.valid} paout(${pa.io.outx},${pa.io.outy}) io.valid(${io.valid})\n")
+}
+
+object PAddReduction2 {
+  val idle :: working :: Nil = Enum(2)
+}
+
+
+class PAddReduction2(numPoints: Int, pw: Int, a: Int, p: Int) extends Module {
+  val io = IO(new Bundle {
+    val load = Input(Bool())
+    val xs = Input(Vec(numPoints, SInt(pw.W)))
+    val ys = Input(Vec(numPoints, SInt(pw.W)))
+    val outx = Output(SInt(pw.W))
+    val outy = Output(SInt(pw.W))
+    val valid = Output(Bool())
+  })
+
+  // import states
+  import PAddReduction2._
+
+
+  // instantiations
+  val count = RegInit(1.U(log2Ceil(numPoints).W))
+  val xreg = RegInit(io.xs(0.U))
+  val yreg = RegInit(io.ys(0.U))
+  //val pa = Module(new PointAddition(pw))
+  val validBit = RegEnable(false.B, false.B, io.load)
+  validBit := validBit || io.load
+  val state = RegInit(idle)
+
+  // latch points into regs
+  val xvec = Reg(Vec(numPoints, SInt(pw.W)))
+  val yvec = Reg(Vec(numPoints, SInt(pw.W)))
+  when (io.load) {
+    for (i <- 0 until numPoints) {
+      xvec(i) := io.xs(i)
+      yvec(i) := io.ys(i)
+    }
+  }
+
+  // defaults
+  io.outx := 0.S
+  io.outy := 0.S
+  io.valid := false.B
+
+  // regs to hold intermediate values
+  val xinter = RegEnable(xvec(0), 0.S, RegNext(io.load))
+  val yinter = RegEnable(yvec(0), 0.S, RegNext(io.load))
+
+  // main switch statement
+  switch (state) {
+    is (idle) {
+      io.valid := false.B
+
+      // have defaults ready
+      xinter := xvec(0)
+      yinter := yvec(0)
+      count := 1.U
+
+      when (io.load) {
+        state := working
+      }
+    }
+    is (working) {
+      io.valid := false.B
+
+      // instantiate the Point Addition Module
+      val pa = Module(new PointAddition(pw))
+      pa.io.load := RegNext(RegNext(io.load)) || RegNext(pa.io.valid)
+      pa.io.a := a.S
+      pa.io.p := p.S
+
+      // assign inputs to PAdd Module
+      pa.io.p1x := xinter
+      pa.io.p1y := yinter
+      pa.io.p2x := xvec(count)
+      pa.io.p2y := yvec(count)
+
+      // check if we have an infinite input
+      val p1inf = (pa.io.p1x === 0.S && pa.io.p1y === 0.S)
+      val p2inf = (pa.io.p2x === 0.S && pa.io.p2y === 0.S)
+      val infinput = p1inf || p2inf
+
+      // go high with infinput, go low when valid goes back down
+      val test = RegInit(false.B)
+      when (infinput) {
+        test := true.B
+      } .elsewhen (!pa.io.valid && RegNext(pa.io.valid)) {
+        test := false.B
+      }
+
+      // update inputs to PAdd Module
+      when (infinput && pa.io.valid) {
+        //when (p1inf && !p2inf) {
+          xinter := pa.io.p2x
+          yinter := pa.io.p2y
+        //}
+        count := count + 1.U
+      } /*.elsewhen (test && !RegNext(test)) {
+        count := count + 1.U
+      }*/ .elsewhen (pa.io.valid && !test) {
+        count := count + 1.U
+        xinter := pa.io.outx
+        yinter := pa.io.outy
+      }
+
+      // assert valid signal state transition
+      when (pa.io.valid && count === numPoints.U - 1.U && !RegNext(infinput) && !RegNext(RegNext(infinput))) {
+        state := idle
+        io.valid := true.B
+        io.outx := pa.io.outx
+        io.outy := pa.io.outy
+      }
+      // debugging
+      printf(p"count(${count}) inter(${xinter}${yinter}) pa.io.load=${pa.io.load}, pa.io.valid(${pa.io.valid}) inputs(${pa.io.p1x}${pa.io.p1y})(${pa.io.p2x}${pa.io.p2y}) test(${test})")
+      when (infinput) {
+        printf("we got an infinput")
+      }
+      printf("\n")
+    }
+  }
+
+
+  //io.valid := RegNext(RegNext(RegNext(RegNext(io.load))))
+
+
+  // debugging
+  when ((io.load) || RegNext(io.load)) {
+    io.xs zip io.ys foreach { case (x, y) => printf(p"(${x},${y}) ") }
+    printf(p" PADDREDUCTION count=${count}\n")
+    xvec zip yvec foreach { case (x, y) => printf(p"(${x},${y}) ") }
+    printf(p" PADDREDUCTION count=${count}\n")
+  }
+
 
 }
