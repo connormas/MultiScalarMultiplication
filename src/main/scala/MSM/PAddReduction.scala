@@ -12,6 +12,9 @@ import chisel3.util._
  * module and using it repeatedly to end up with a final sum. This RTL could
  * certaily get clened up more but due to current (2-9-22) time constraints,
  * this will have to do for now.
+ * IMPORTANT NOTE: PAddReduction is a first attempt and has bugs. PAddReduction2 should
+ * be used. This module still has a bug in which one of its input points cannot be the
+ * Point at Infinity.
  * */
 class PAddReduction(numPoints: Int, pw: Int, a: Int, p: Int) extends Module {
   val io = IO(new Bundle {
@@ -58,15 +61,6 @@ class PAddReduction(numPoints: Int, pw: Int, a: Int, p: Int) extends Module {
   yreg := yvec(0)
 
   pa.io.load := RegNext(io.load) || RegNext(pa.io.valid)
-
-  // debugging
-  when ((io.load) || RegNext(io.load)) {
-    io.xs zip io.ys foreach { case (x, y) => printf(p"(${x},${y}) ") }
-    printf(p" PADDREDUCTION count=${count}\n")
-    xvec zip yvec foreach { case (x, y) => printf(p"(${x},${y}) ") }
-    printf(p" PADDREDUCTION count=${count}\n")
-  }
-
 
   // did we end up with the Point at Infinity?
   val encounteredInf = pa.io.valid && pa.io.outx === 0.S && pa.io.outy === 0.S
@@ -229,46 +223,39 @@ class PAddReduction2(numPoints: Int, pw: Int, a: Int, p: Int) extends Module {
 
       // update inputs to PAdd Module
       when (infinput && pa.io.valid) {
-        //when (p1inf && !p2inf) {
+        when (p1inf && !p2inf) { // may need this later for other case
           xinter := pa.io.p2x
           yinter := pa.io.p2y
-        //}
+        } .elsewhen (!p1inf && p2inf) {
+          printf("THIS CASE\n")
+        }
         count := count + 1.U
-      } /*.elsewhen (test && !RegNext(test)) {
-        count := count + 1.U
-      }*/ .elsewhen (pa.io.valid && !test) {
+      }.elsewhen (pa.io.valid && !test) {
         count := count + 1.U
         xinter := pa.io.outx
         yinter := pa.io.outy
       }
 
-      // assert valid signal state transition
-      when (pa.io.valid && count === numPoints.U - 1.U && !RegNext(infinput) && !RegNext(RegNext(infinput))) {
+      // assert valid signal, state transition
+      when (pa.io.valid && count === numPoints.U - 1.U && !test) {//&& !RegNext(infinput) && !RegNext(RegNext(infinput))) {
         state := idle
         io.valid := true.B
         io.outx := pa.io.outx
         io.outy := pa.io.outy
       }
       // debugging
-      printf(p"count(${count}) inter(${xinter}${yinter}) pa.io.load=${pa.io.load}, pa.io.valid(${pa.io.valid}) inputs(${pa.io.p1x}${pa.io.p1y})(${pa.io.p2x}${pa.io.p2y}) test(${test})")
+      /*printf(p"count(${count}) inter(${xinter}${yinter}) pa.io.load=${pa.io.load}, pa.io.valid(${pa.io.valid}) inputs(${pa.io.p1x}${pa.io.p1y})(${pa.io.p2x}${pa.io.p2y}) test(${test})")
       when (infinput) {
         printf("we got an infinput")
       }
-      printf("\n")
+      printf("\n")*/
     }
   }
-
-
-  //io.valid := RegNext(RegNext(RegNext(RegNext(io.load))))
-
-
   // debugging
-  when ((io.load) || RegNext(io.load)) {
+  /*when ((io.load) || RegNext(io.load)) {
     io.xs zip io.ys foreach { case (x, y) => printf(p"(${x},${y}) ") }
     printf(p" PADDREDUCTION count=${count}\n")
     xvec zip yvec foreach { case (x, y) => printf(p"(${x},${y}) ") }
     printf(p" PADDREDUCTION count=${count}\n")
-  }
-
-
+  }*/
 }
