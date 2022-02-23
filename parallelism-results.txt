@@ -1,15 +1,17 @@
-(PMNaive Tests starting: (12,16) * (34) = (1,12))
-test PMNaive Success: 0 tests passed in 426 cycles in 0.572414 seconds 744.22 Hz
+TopLevelTest wkld: 1 size: 2
+test TopLevelMSM Success: 0 tests passed in 558 cycles in 0.642017 seconds 869.14 Hz
 --
-(PMNaive Tests starting: (1,12) * (6) = (5,9))
-test PMNaive Success: 0 tests passed in 80 cycles in 0.057954 seconds 1380.41 Hz
-(PMNaive Tests starting: (12,16) * (34) = (1,12))
-test PMNaive Success: 0 tests passed in 426 cycles in 0.547392 seconds 778.24 Hz
+TopLevelTest wkld: 2 size: 2
+test TopLevelMSM Success: 0 tests passed in 955 cycles in 0.602492 seconds 1585.08 Hz
 --
-(PMNaive Tests starting: (1,12) * (6) = (5,9))
-test PMNaive Success: 0 tests passed in 80 cycles in 0.056077 seconds 1426.62 Hz
-(PMNaive Tests starting: (12,16) * (34) = (1,12))
-test PMNaive Success: 0 tests passed in 426 cycles in 0.598045 seconds 712.32 Hz
+TopLevelTest wkld: 1 size: 4
+test TopLevelMSM Success: 0 tests passed in 350 cycles in 0.350217 seconds 999.38 Hz
 --
-(PMNaive Tests starting: (1,12) * (6) = (5,9))
-test PMNaive Success: 0 tests passed in 80 cycles in 0.047994 seconds 1666.87 Hz
+TopLevelTest wkld: 2 size: 4
+test TopLevelMSM Success: 0 tests passed in 694 cycles in 0.709862 seconds 977.66 Hz
+--
+TopLevelTest wkld: 1 size: 6
+test TopLevelMSM Success: 0 tests passed in 332 cycles in 0.489798 seconds 677.83 Hz
+--
+TopLevelTest wkld: 2 size: 6
+test TopLevelMSM Success: 0 tests passed in 511 cycles in 0.675812 seconds 756.13 Hz
