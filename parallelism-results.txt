@@ -1,17 +1,23 @@
 TopLevelTest wkld: 1 size: 2
-test TopLevelMSM Success: 0 tests passed in 558 cycles in 0.642017 seconds 869.14 Hz
+test TopLevelMSM Success: 0 tests passed in 558 cycles in 0.691714 seconds 806.69 Hz
 --
 TopLevelTest wkld: 2 size: 2
-test TopLevelMSM Success: 0 tests passed in 955 cycles in 0.602492 seconds 1585.08 Hz
+test TopLevelMSM Success: 0 tests passed in 955 cycles in 0.658549 seconds 1450.16 Hz
 --
 TopLevelTest wkld: 1 size: 4
-test TopLevelMSM Success: 0 tests passed in 350 cycles in 0.350217 seconds 999.38 Hz
+test TopLevelMSM Success: 0 tests passed in 350 cycles in 0.420401 seconds 832.54 Hz
 --
 TopLevelTest wkld: 2 size: 4
-test TopLevelMSM Success: 0 tests passed in 694 cycles in 0.709862 seconds 977.66 Hz
+test TopLevelMSM Success: 0 tests passed in 694 cycles in 0.765762 seconds 906.29 Hz
 --
 TopLevelTest wkld: 1 size: 6
-test TopLevelMSM Success: 0 tests passed in 332 cycles in 0.489798 seconds 677.83 Hz
+test TopLevelMSM Success: 0 tests passed in 332 cycles in 0.535116 seconds 620.43 Hz
 --
 TopLevelTest wkld: 2 size: 6
-test TopLevelMSM Success: 0 tests passed in 511 cycles in 0.675812 seconds 756.13 Hz
+test TopLevelMSM Success: 0 tests passed in 511 cycles in 0.630180 seconds 810.88 Hz
+--
+TopLevelTest wkld: 1 size: 12
+test TopLevelMSM Success: 0 tests passed in 271 cycles in 0.670048 seconds 404.45 Hz
+--
+TopLevelTest wkld: 2 size: 12
+test TopLevelMSM Success: 0 tests passed in 333 cycles in 0.872775 seconds 381.54 Hz
