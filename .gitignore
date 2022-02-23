@@ -11,3 +11,5 @@ src/target/
 src/project/
 
 .bsp
+
+.ipynb_checkpoints/
