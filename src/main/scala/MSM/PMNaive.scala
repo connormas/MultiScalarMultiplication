@@ -203,7 +203,6 @@ class PMNaive(pw: Int, sw: Int) extends Module {
 
       when (io.load) {
         when (io.s === 0.S || io.s === 1.S) {
-          printf("This case\n")
           state := specialcases
         } .otherwise {
           state := working
@@ -211,17 +210,17 @@ class PMNaive(pw: Int, sw: Int) extends Module {
       }
     }
     is (specialcases) {
-      printf("in the correct state!\n")
+      //printf("in the correct state!\n")
       io.valid := false.B
       when (io.s === 0.S) {
-        printf("made it here?\n")
+        //printf("made it here?\n")
         io.valid := true.B
         state := idle
         io.outx := 0.S
         io.outy := 0.S
       }
       when (io.s === 1.S) {
-        printf("made it here!\n")
+        //printf("made it here!\n")
         io.valid := true.B
         state := idle
         io.outx := x
@@ -234,10 +233,12 @@ class PMNaive(pw: Int, sw: Int) extends Module {
       when (infinput && padd.io.valid) {
         // start here tomorrow!
         when (p1inf && !p2inf) {
-          printf("this case :(\n")
+          printf("should never happen\n")
         } .elsewhen (!p1inf && p2inf) {
           when (s === 3.S) {
-            printf("this case :(\n")
+            //printf("this case :( ahhhhhh!\n")
+            xinter := x
+            yinter := y
           }
           when (s === 2.S) {
             state := idle
@@ -245,11 +246,12 @@ class PMNaive(pw: Int, sw: Int) extends Module {
             io.outx := x // xinter
             io.outy := y // yinter
           } .otherwise {
+            s := s - 1.S
             xinter := x
             yinter := y
           }
         }
-        s := s - 1.S
+        //s := s - 1.S
       } .elsewhen (padd.io.valid & !test) {
         s := s - 1.S
         xinter := padd.io.outx
@@ -257,7 +259,7 @@ class PMNaive(pw: Int, sw: Int) extends Module {
       }
 
       // we are done, set output and state transistion
-      when (s === 2.S && padd.io.valid && !infinput) {
+      when (s === 2.S && padd.io.valid && !infinput && !test) {
         io.valid := true.B
         state := idle
         io.outx := padd.io.outx
@@ -267,10 +269,10 @@ class PMNaive(pw: Int, sw: Int) extends Module {
     }
   }
   // debugging
-  //printf(p"state(${state}) valid(${io.valid}) out(${io.outx},${io.outy}) count(${s}) inter(${xinter}${yinter}) pa.io.load=${padd.io.load}, pa.io.valid(${padd.io.valid}) inputs(${padd.io.p1x}${padd.io.p1y})(${padd.io.p2x}${padd.io.p2y}) test(${test}) s=${io.s}")
-  //when (infinput) {
-  //  printf("we got an infinput")
-  //}
-  //printf("\n")
+  /*printf(p"state(${state}) valid(${io.valid}) out(${io.outx},${io.outy}) count(${s}) inter(${xinter}${yinter}) pa.io.load=${padd.io.load}, pa.io.valid(${padd.io.valid}) inputs(${padd.io.p1x}${padd.io.p1y})(${padd.io.p2x}${padd.io.p2y}) test(${test}) s=${io.s}")
+  when (infinput) {
+    printf("we got an infinput")
+  }
+  printf("\n")*/
 
 }

@@ -132,11 +132,11 @@ class TopLevelMSM2(pw: Int, sw: Int, a: Int, p: Int,
   //io.valid := RegNext(par.io.valid)
   io.valid := RegNext(pa.io.valid) //&& resetonthiscycle
 
-  when (readyforreduction) {
+  /*when (readyforreduction) {
     printf("\nmultscomplete: ")
     xregseq zip yregseq foreach { case(x, y) => printf(p"(${x}${y}) ")}
     printf(p"\n")
-  }
+  }*/
 
   printf(p"${completebits} load=${io.load} valid${io.valid}\n")
 
@@ -197,7 +197,7 @@ class TopLevelMSM(pw: Int, sw: Int, a: Int, p: Int,
       completebits(i) := true.B
       xregseq(i) := pm.io.outx // capture outputs
       yregseq(i) := pm.io.outy
-      printf(p"MULTIPLIER ${i} finished, (${pm.io.outx},${pm.io.outy})\n")
+      //printf(p"MULTIPLIER ${i} finished, (${pm.io.outx},${pm.io.outy})\n")
     }
   }
 
@@ -228,7 +228,7 @@ class TopLevelMSM(pw: Int, sw: Int, a: Int, p: Int,
     is (idle) {
       io.valid := false.B
       when (io.load) {
-        printf("moving to working\n")
+        //printf("moving to working\n")
         state := multiplying
       }
     }
@@ -248,17 +248,17 @@ class TopLevelMSM(pw: Int, sw: Int, a: Int, p: Int,
   }
 
 
-  when (RegNext(RegNext(io.load))) {
+  /*when (RegNext(RegNext(io.load))) {
     printf("IO.LOAD: ")
     xregseq zip yregseq zip sregseq foreach { case((x,y), s) => printf(p"(${x},${y})${s} ")}
     printf("\n")
-  }
+  }*/
 
-  when (readyforreduction) {
+  /*when (readyforreduction) {
     printf("READYFORREDUCTION: ")
     xregseq zip yregseq foreach { case(x,y) => printf(p"(${x},${y}) ")}
     printf("\n")
-  }
+  }*/
 
-  printf(p"${completebits} load=${io.load} valid${io.valid} paddreduc.load(${par.io.load}) result(${par.io.outx},${par.io.outy})\n")
+  //printf(p"${completebits} load=${io.load} valid${io.valid} paddreduc.load(${par.io.load}) result(${par.io.outx},${par.io.outy})\n")
 }

@@ -13,3 +13,7 @@ src/project/
 .bsp
 
 .ipynb_checkpoints/
+
+*.ipynb
+
+*.txt

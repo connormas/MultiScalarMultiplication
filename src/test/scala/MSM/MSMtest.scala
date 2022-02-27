@@ -50,7 +50,7 @@ class testfunctions {
     //dut.clock.step(3)
     dut.io.outy.expect(ry.S)
     dut.io.outx.expect(rx.S)
-    //dut.clock.step(3)
+    dut.clock.step()
   }
 
   def PMBSTest(dut: PMBitSerial, a: Int, p: Int,
@@ -83,8 +83,32 @@ class testfunctions {
     dut.clock.step()
   }
 
+  def betterReductionTest(dut: PAddReduction2, points: Seq[(Int, Int)],
+                          a: BigInt, b: BigInt, p: BigInt): Unit = {
+
+    // make curve and list of Point objects
+    val curve = new EllipticCurve(a, b, p)
+    val refpoints = points map { case(x,y) => new Point(x, y, curve) }
+    val result = refpoints reduce {_ + _}
+
+    points.zipWithIndex foreach { case ((x, y), i) =>
+      dut.io.xs(i).poke(x.S)
+      dut.io.ys(i).poke(y.S)
+    }
+    dut.io.load.poke(true.B)
+    dut.clock.step()
+    dut.io.load.poke(false.B)
+    while ((dut.io.valid.peek().litValue() == 0)) dut.clock.step(1)
+    dut.clock.step(5)
+    //dut.io.outx.expect(result.x.S)
+    //dut.io.outy.expect(result.y.S)
+    //dut.clock.step()
+  }
+
+
   def TopLevelTest(dut: TopLevelMSM, x: Seq[SInt], y: Seq[SInt], s: Seq[SInt],
                   rx: Int, ry: Int): Unit = {
+    println(s"TopLevelTest nummults = ${x.length}")
     x.zipWithIndex foreach { case (x, i) => dut.io.pointsx(i).poke(x) }
     y.zipWithIndex foreach { case (y, i) => dut.io.pointsy(i).poke(y) }
     s.zipWithIndex foreach { case (s, i) => dut.io.scalars(i).poke(s) }
@@ -95,23 +119,30 @@ class testfunctions {
     while ((dut.io.valid.peek().litValue() == 0)) dut.clock.step(1)
     dut.io.outx.expect(rx.S)
     dut.io.outy.expect(ry.S)
+    dut.clock.step(3)
   }
 
   def TopLevelTestVariableLength(dut: TopLevelMSM, points: Seq[(Int, Int)], scalars: Seq[Int],
-                                 rs: Int, a: Int, b: Int, p: Int): Unit = {
+                                 rs: Int, wkld: Int, a: Int, b: Int, p: Int): Unit = {
     assert (points.size == scalars.size)
-    assert (points.size % rs == 0)
+    //assert (points.size % rs == 0)
+    println(s"TopLevelTest wkld: ${wkld} size: ${rs}")
+
 
     var allinputs = points zip scalars
-    val numInputs = points.size / rs
+    allinputs = (0 until 100000) flatMap { i => allinputs }
+    val numInputs = allinputs.size / rs
+
+
+    //allinputs foreach println
 
     val curve = new EllipticCurve(a, b, p)
 
     for (iter <- 0 until numInputs) {
-      println(s"iteration $iter")
+      //println(s"iteration $iter")
       val currentinputs = allinputs.take(rs)
-      currentinputs foreach { case ((x,y), s) => print(s"(${x},${y}) * ${s} + ")}
-      println("\n")
+      //currentinputs foreach { case ((x,y), s) => print(s"(${x},${y}) * ${s} + ")}
+      //println("\n")
       allinputs = allinputs.drop(rs)
       currentinputs.zipWithIndex foreach { case(((x,y), s), i) => // point zipped with scalar zipped with ind
         dut.io.pointsx(i).poke(x.S)
@@ -127,10 +158,10 @@ class testfunctions {
       val currPoints = currentinputs map { case ((x,y), s) => new Point(x, y, curve)}
       val currScalars = currentinputs map { case ((x,y), s) => s}
       val result = zksnarkMSM_model(currPoints, currScalars)
-      result.print()
-      //dut.io.outx.expect(result.x)
-      //dut.io.outy.expect(result.y)
-      dut.clock.step()
+      //result.print()
+      //dut.io.outx.expect(result.x.S)
+      //dut.io.outy.expect(result.y.S)
+      dut.clock.step(2)
     }
   }
 }
@@ -157,113 +188,197 @@ class MSMtest extends FreeSpec with ChiselScalatestTester {
 
   "TopLevelMSM Tests (size 4) - manual tests" in {
     test(new TopLevelMSM(8, 8, 0, 17, 4, 4)) { dut =>
-      val xs = Seq(1, 5, 6, 12) map (x => x.S(8.W))
-      val ys = Seq(5, 9, 6, 1) map (y => y.S(8.W))
-      val ss = Seq(2, 4, 6, 8) map (y => y.S(8.W))
-      t.TopLevelTest(dut, xs, ys, ss, 12, 1)
+      //val xs = Seq(1, 5, 6, 12) map (x => x.S(8.W))
+      //val ys = Seq(5, 9, 6, 1) map (y => y.S(8.W))
+      //val ss = Seq(2, 4, 6, 8) map (y => y.S(8.W))
+      //t.TopLevelTest(dut, xs, ys, ss, 12, 1)
+      //val xs = Seq(15, 2, 8, 12) map (x => x.S(8.W))
+      //val ys = Seq(13,10, 3, 1) map (y => y.S(8.W))
+      //val ss = Seq( 1, 2, 3, 4) map (s => s.S(8.W))
+      //t.TopLevelTest(dut, xs, ys, ss, 5, 9)
+      //val xs1 = Seq(15, 2, 8, 12) map (x => x.S(8.W))
+      //val ys1 = Seq(13,10, 3, 1) map (y => y.S(8.W))
+      //val ss1 = Seq( 1, 2, 3, 4) map (s => s.S(8.W))
+      //t.TopLevelTest(dut, xs1, ys1, ss1, 5, 9)
+      //val xs2 = Seq(6, 1,10, 15) map (x => x.S(8.W))
+      //val ys2 = Seq(6, 5, 2, 13) map (y => y.S(8.W))
+      //val ss2 = Seq( 9,10,11,12) map (s => s.S(8.W))
+      //t.TopLevelTest(dut, xs2, ys2, ss2, 1, 12)
     }
   }
 
-  "TopLevelMSM Tests (size 8) - manual tests" in {
+  /*"TopLevelMSM Tests (size 8) - manual tests" in {
     test(new TopLevelMSM(8, 8, 0, 17, 8, 8)) { dut =>
       val xs = Seq(1, 5, 6, 12, 5, 2, 1, 10) map (x => x.S(8.W))
       val ys = Seq(5, 9, 6, 1, 8, 7, 12, 15) map (y => y.S(8.W))
       val ss = Seq(2, 4, 6, 8, 1, 3, 5, 7) map (y => y.S(8.W))
       t.TopLevelTest(dut, xs, ys, ss, 8, 3)
-      t.TopLevelTest(dut, xs, ys, ss, 8, 3) // do it again?
+      //t.TopLevelTest(dut, xs, ys, ss, 8, 3) // do it again?
+    }
+  }*/
+
+  "TopLevelMSM W 1 size 2 function" in {
+    val size = 2
+    test (new TopLevelMSM(8,8,0,17,size,size)) { dut =>
+      val points = Seq((15,13), (2,10), (8,3), (12,1), (6,6), (5,8), (10,15), (1,12), (6,6), (1,5), (10,2), (15,13))
+      val scalars = Seq(1,2,3,4,5,6,7,8,9,10,11,12)
+      t.TopLevelTestVariableLength(dut, points, scalars, size, 1, 0, 7, 17)
+    }
+  }
+  "TopLevelMSM W 2 size 2 function" in {
+    val size = 2
+    test (new TopLevelMSM(8,8,0,17,size,size)) { dut =>
+      val points2 = Seq((15,13), (2,10), (8,3), (12,1), (6,6), (6,6), (10,15), (1,12), (6,6), (1,5), (10,2), (15,13))
+      val scalars2 = Seq(1,20,2,4, 19,6,7,12, 22,1,11,12)
+      t.TopLevelTestVariableLength(dut, points2, scalars2, size, 2, 0, 7, 17)
+    }
+  }
+  "TopLevelMSM W 1 size 4 function" in {
+    val size = 4
+    test (new TopLevelMSM(8,8,0,17,size,size)) { dut =>
+      val points = Seq((15,13), (2,10), (8,3), (12,1), (6,6), (5,8), (10,15), (1,12), (6,6), (1,5), (10,2), (15,13))
+      val scalars = Seq(1,2,3,4,5,6,7,8,9,10,11,12)
+      t.TopLevelTestVariableLength(dut, points, scalars, size, 1, 0, 7, 17)
+    }
+  }
+  "TopLevelMSM W 2 size 4 function" in {
+    val size = 4
+    test (new TopLevelMSM(8,8,0,17,size,size)) { dut =>
+      val points2 = Seq((15,13), (2,10), (8,3), (12,1), (6,6), (6,6), (10,15), (1,12), (6,6), (1,5), (10,2), (15,13))
+      val scalars2 = Seq(1,20,2,4, 19,6,7,12, 22,1,11,12)
+      t.TopLevelTestVariableLength(dut, points2, scalars2, size, 2, 0, 7, 17)
+    }
+  }
+  "TopLevelMSM W 1 size 6 function" in {
+    val size = 6
+    test (new TopLevelMSM(8,8,0,17,size,size)) { dut =>
+      val points = Seq((15,13), (2,10), (8,3), (12,1), (6,6), (5,8), (10,15), (1,12), (6,6), (1,5), (10,2), (15,13))
+      val scalars = Seq(1,2,3,4,5,6,7,8,9,10,11,12)
+      t.TopLevelTestVariableLength(dut, points, scalars, size, 1, 0, 7, 17)
+    }
+  }
+  "TopLevelMSM W 2 size 6 function" in {
+    val size = 6
+    test (new TopLevelMSM(8,8,0,17,size,size)) { dut =>
+      val points2 = Seq((15,13), (2,10), (8,3), (12,1), (6,6), (6,6), (10,15), (1,12), (6,6), (1,5), (10,2), (15,13))
+      val scalars2 = Seq(1,20,2,4, 19,6,7,12, 22,1,11,12)
+      t.TopLevelTestVariableLength(dut, points2, scalars2, size, 2, 0, 7, 17)
+    }
+  }
+  "TopLevelMSM W 1 size 12 function" in {
+    val size = 12
+    test (new TopLevelMSM(8,8,0,17,size,size)) { dut =>
+      val points = Seq((15,13), (2,10), (8,3), (12,1), (6,6), (5,8), (10,15), (1,12), (6,6), (1,5), (10,2), (15,13))
+      val scalars = Seq(1,2,3,4,5,6,7,8,9,10,11,12)
+      t.TopLevelTestVariableLength(dut, points, scalars, size, 1, 0, 7, 17)
+    }
+  }
+  "TopLevelMSM W 2 size 12 function" in {
+    val size = 12
+    test (new TopLevelMSM(8,8,0,17,size,size)) { dut =>
+      val points2 = Seq((15,13), (2,10), (8,3), (12,1), (6,6), (6,6), (10,15), (1,12), (6,6), (1,5), (10,2), (15,13))
+      val scalars2 = Seq(1,20,2,4, 19,6,7,12, 22,1,11,12)
+      t.TopLevelTestVariableLength(dut, points2, scalars2, size, 2, 0, 7, 17)
+    }
+  }
+  "TopLevelMSM W 1 size 16 function" in {
+    val size = 16
+    test (new TopLevelMSM(8,8,0,17,size,size)) { dut =>
+      val points = Seq((15,13), (2,10), (8,3), (12,1), (6,6), (5,8), (10,15), (1,12), (6,6), (1,5), (10,2), (15,13))
+      val scalars = Seq(1,2,3,4,5,6,7,8,9,10,11,12)
+      t.TopLevelTestVariableLength(dut, points, scalars, size, 1, 0, 7, 17)
+    }
+  }
+  "TopLevelMSM W 2 size 16 function" in {
+    val size = 16
+    test (new TopLevelMSM(8,8,0,17,size,size)) { dut =>
+      val points2 = Seq((15,13), (2,10), (8,3), (12,1), (6,6), (6,6), (10,15), (1,12), (6,6), (1,5), (10,2), (15,13))
+      val scalars2 = Seq(1,20,2,4, 19,6,7,12, 22,1,11,12)
+      t.TopLevelTestVariableLength(dut, points2, scalars2, size, 2, 0, 7, 17)
+    }
+  }
+  "TopLevelMSM W 1 size 24 function" in {
+    val size = 24
+    test (new TopLevelMSM(8,8,0,17,size,size)) { dut =>
+      val points = Seq((15,13), (2,10), (8,3), (12,1), (6,6), (5,8), (10,15), (1,12), (6,6), (1,5), (10,2), (15,13))
+      val scalars = Seq(1,2,3,4,5,6,7,8,9,10,11,12)
+      t.TopLevelTestVariableLength(dut, points, scalars, size, 1, 0, 7, 17)
+    }
+  }
+  "TopLevelMSM W 2 size 24 function" in {
+    val size = 24
+    test (new TopLevelMSM(8,8,0,17,size,size)) { dut =>
+      val points2 = Seq((15,13), (2,10), (8,3), (12,1), (6,6), (6,6), (10,15), (1,12), (6,6), (1,5), (10,2), (15,13))
+      val scalars2 = Seq(1,20,2,4, 19,6,7,12, 22,1,11,12)
+      t.TopLevelTestVariableLength(dut, points2, scalars2, size, 2, 0, 7, 17)
     }
   }
 
-  /*"TopLevelMSM Tests (size 8) - manual tests" in {
-    test (new TopLevelMSM(16, 16, 0, 17, 8, 8)) { dut =>
-      val points1 = Seq(Seq(15,13),Seq(8,3),Seq(1,5),Seq(12,16),
-                        Seq(2,10),Seq(6,6),Seq(1,12),Seq(5,9))
-      val points2=  Seq(Seq(2,7),Seq(12,1),Seq(1,12),Seq(6,6),
-                       Seq(8,3),Seq(2,10),Seq(8,14),Seq(10,2))
-      val s1 = Seq(4,5,2,34, 2,5,6,7)
-      val s2 = Seq(8,4,2,1, 3,23,5,75)
-      val px1 = points1 map { case Seq(x, y) => x }
-      val py1 = points1 map { case Seq(x, y) => y }
-      val px2 = points2 map { case Seq(x, y) => x }
-      val py2 = points2 map { case Seq(x, y) => y }
-
-      px1.zipWithIndex foreach { case (x, i) => dut.io.pointsx(i).poke(x.S) }
-      py1.zipWithIndex foreach { case (y, i) => dut.io.pointsy(i).poke(y.S) }
-      s1.zipWithIndex foreach { case (s, i) => dut.io.scalars(i).poke(s.S) }
-      dut.io.load.poke(true.B)
-      dut.io.complete.poke(true.B)
-      dut.clock.step()
-      dut.io.load.poke(false.B)
-      while ((dut.io.valid.peek().litValue() == 0)) dut.clock.step(1)
-
-
-      dut.io.outx.expect(1.S)
-      dut.io.outy.expect(5.S)
-      dut.clock.step()
-
-      px2.zipWithIndex foreach { case (x, i) => dut.io.pointsx(i).poke(x.S) }
-      py2.zipWithIndex foreach { case (y, i) => dut.io.pointsy(i).poke(y.S) }
-      s2.zipWithIndex foreach { case (s, i) => dut.io.scalars(i).poke(s.S) }
-      dut.io.load.poke(true.B)
-      dut.io.complete.poke(true.B)
-      dut.clock.step()
-      dut.io.load.poke(false.B)
-      while ((dut.io.valid.peek().litValue() == 0)) dut.clock.step(1)
-      dut.io.outx.expect(12.S)
-      dut.io.outy.expect(16.S)
-    }
-  }*/
-
-  /*"testing new toplevel function" in {
-    test (new TopLevelMSM(8,8,0,17, 4, 4)) { dut =>
-      val points = Seq((15,13), (2,10), (8,3), (12,1), (6,6), (5,8), (10,15), (1,12), (3,0), (1,5), (10,2), (5,9))
-      val scalars = Seq(1,2,3,4,5,6,7,8,9,10,11,12)
-      t.TopLevelTestVariableLength(dut, points, scalars, 4, 0, 7, 17)
-    }
-  }*/
-
-  "PAdd Reduction Tests (size 4) - manual tests" in {
-    test (new PAddReduction2(4, 16, 0, 17)) { dut =>
+  /*"PAdd Reduction Tests (size 4) - manual tests" in {
+    test (new PAddReduction2(4, 1size, 0, 17)) { dut =>
       //val xs0 = Seq( 1,  1,  8, 12) map (x => x.S(8.W))
       //val ys0 = Seq( 5, 12,  3,  1) map (y => y.S(8.W))
       //t.PAReductionTest(dut, xs0, ys0, 10, 15)
-      val xs1 = Seq( 1,  3,  8, 12) map (x => x.S(8.W))
-      val ys1 = Seq( 5,  0,  3,  1) map (y => y.S(8.W))
-      t.PAReductionTest(dut, xs1, ys1, 1, 12)
+      //val xs1 = Seq( 1,  3,  8, 12) map (x => x.S(8.W))
+      //val ys1 = Seq( 5,  0,  3,  1) map (y => y.S(8.W))
+      //t.PAReductionTest(dut, xs1, ys1, 1, 12)
       //val xs2 = Seq( 2, 12,  0, 12) map (x => x.S(8.W))
       //val ys2 = Seq(10, 16,  0, 16) map (y => y.S(8.W))
       //t.PAReductionTest(dut, xs2, ys2, 5, 9)
+      val xs2 = Seq( 3, 1,  6, 1) map (x => x.S(8.W)) // last point is inf
+      dut.clock.step(20)
+      val ys2 = Seq( 0, 5, 11, 5) map (y => y.S(8.W))
+      t.PAReductionTest(dut, xs2, ys2, 5, 8)
+    }
+  }*/
+
+  "Reduction Tests (size 4) - manual, better function" in {
+    test (new PAddReduction2(4, 16, 0, 17)) { dut =>
+      //val points3 = Seq((6,6),(12,1),(5,9),(2,7))
+      //t.betterReductionTest(dut, points3, 0, 7, 17)
+      //val points2 = Seq((15,13),(12,1),(3,0),(2,7))
+      //t.betterReductionTest(dut, points2, 0, 7, 17)
+      //val points = Seq((10,15),(0,0),(6,11),(1,5)) // gets no modinv error?
+      //t.betterReductionTest(dut, points, 0, 7, 17)
+      //val points1 = Seq((3,0), (1,5), (6,11), (0,0))
+      //t.betterReductionTest(dut, points1, 0, 7, 17)
+      //val points1 = Seq((6,6), (0,0), (6,11), (5,8)) // this needs fixing
+      //t.betterReductionTest(dut, points1, 0, 7, 17)
     }
   }
 
-  "PAdd Reduction Tests (size 17) - manual tests" in {
+  /*"PAdd Reduction Tests (size 17) - manual tests" in {
     test (new PAddReduction2(17, 16, 0, 17)) { dut =>
       val xs1 = Seq(15,  2,  8, 12,  6,  5, 10,  1,  3,  1, 10,  5,  6, 12,  8,  2, 15) map (x => x.S(8.W))
       val ys1 = Seq(13, 10,  3,  1,  6,  8, 15, 12,  0,  5,  2,  9, 11, 16, 14,  7,  4) map (y => y.S(8.W))
       t.PAReductionTest(dut, xs1, ys1, 3, 0)
     }
-  }
+  }*/
 
-  "PointMultNaive Tests - manual tests" in {
-    test (new PMNaive(32, 32)) { dut =>
-      //t.PMNaiveTest(dut, 0, 17, 15, 13, 0,  0,  0)  // mult by zero
-      //t.PMNaiveTest(dut, 0, 17, 15, 13, 1, 15, 13)  // mult by 1
-      //t.PMNaiveTest(dut, 0, 17, 15, 13, 2,  2, 10)
-      //t.PMNaiveTest(dut, 0, 17, 15, 13, 3,  8,  3)
-      //t.PMNaiveTest(dut, 0, 17, 15, 13, 18,  0, 0) // back to point at inf
-      //t.PMNaiveTest(dut, 0, 17, 15, 13, 17,  15, 4) // back to point at inf
-      //t.PMNaiveTest(dut, 0, 17, 15, 13, 19,  15, 13) // back to point at inf
-      //t.PMNaiveTest(dut, 0, 17, 12, 16, 8,  12, 1)
-      //t.PMNaiveTest(dut, 0, 17, 12, 16, 9, 0, 0)
-      //t.PMNaiveTest(dut, 0, 17, 12, 16, 10, 12, 16) // this shit
+  /*"PointMultNaive Tests - manual tests" in {
+    test (new PMNaive(16, 16)) { dut =>
+      t.PMNaiveTest(dut, 0, 17, 15, 13, 0,  0,  0)  // mult by zero
+      t.PMNaiveTest(dut, 0, 17, 15, 13, 1, 15, 13)  // mult by 1
+      t.PMNaiveTest(dut, 0, 17, 15, 13, 2,  2, 10)
+      t.PMNaiveTest(dut, 0, 17, 15, 13, 3,  8,  3)
+      t.PMNaiveTest(dut, 0, 17, 15, 13, 18,  0, 0) // back to point at inf
+      t.PMNaiveTest(dut, 0, 17, 15, 13, 17,  15, 4) // back to point at inf
+      t.PMNaiveTest(dut, 0, 17, 15, 13, 19,  15, 13) // back to point at inf
+      t.PMNaiveTest(dut, 0, 17, 12, 16, 8,  12, 1)
+      t.PMNaiveTest(dut, 0, 17, 12, 16, 9, 0, 0)
+      t.PMNaiveTest(dut, 0, 17, 12, 16, 8, 12, 1) // this shit copied
+      t.PMNaiveTest(dut, 0, 17, 12, 16, 9, 0, 0) // this shit copied
+      t.PMNaiveTest(dut, 0, 17, 12, 16, 10, 12, 16) // this shit
       //t.PMNaiveTest(dut, 0, 17, 12, 16, 11, 1, 5)
       //t.PMNaiveTest(dut, 0, 17, 12, 16, 29, 1, 5)
       //t.PMNaiveTest(dut, 0, 17, 12, 16, 34,  1, 12)
       //t.PMNaiveTest(dut, 0, 17, 12, 16, 35,  12, 1)
       //t.PMNaiveTest(dut, 0, 17, 1, 12, 6, 5, 9)
-      t.PMNaiveTest(dut, 0, 17, 5, 9, 7, 5, 9)
+      //t.PMNaiveTest(dut, 0, 17, 12, 1, 4, 2, 7)
+      //t.PMNaiveTest(dut, 0, 17, 15, 13, 21, 8, 3)
+      t.PMNaiveTest(dut, 0, 17, 2, 10, 20, 12,1)
     }
-  }
+  }*/
 
   /*"PointMultNaive Tests - extensive tests" in {
     test (new PMNaive(32, 32)) { dut =>
@@ -277,7 +392,7 @@ class MSMtest extends FreeSpec with ChiselScalatestTester {
   }*/
 
 
-  "PointAddition Tests - manual tests" in {
+  /*"PointAddition Tests - manual tests" in {
     test (new PointAddition(32)) { dut =>
       t.PointAdditionTest(dut,  0, 17, 15, 13, 15, 13,  2, 10) // point double
       t.PointAdditionTest(dut,  0, 17, 15, 13,  2, 10,  8,  3)
@@ -291,9 +406,9 @@ class MSMtest extends FreeSpec with ChiselScalatestTester {
       t.PointAdditionTest(dut,  0, 17, 15, 13,  15, 4,  0, 0)
       t.PointAdditionTest(dut,  0, 17, 1, 5,  1, 12,  0, 0)
     }
-  }
+  }*/
 
-  "PointAddition Tests - more extensive, small curve" in {
+  /*"PointAddition Tests - more extensive, small curve" in {
     test (new PointAddition(32)) { dut =>
       val p1707 = new EllipticCurve(0, 7, 17)
       val g = new Point(15, 13, p1707) // generator point
@@ -316,9 +431,9 @@ class MSMtest extends FreeSpec with ChiselScalatestTester {
         dut.io.outy.expect(r.y.S)
       }
     }
-  }
+  }*/
 
-  "PointAddition Tests - slightly bigger curve" in {
+  /*"PointAddition Tests - slightly bigger curve" in {
     test(new PointAddition(32)) { dut =>
       val p99707a = BigInt("-1")
       val p99707b = BigInt("1")
@@ -346,7 +461,7 @@ class MSMtest extends FreeSpec with ChiselScalatestTester {
         dut.io.outy.expect(r.y.S)
       }
     }
-  }
+  }*/
 
 
   /*"ModularInverse should find the mod inverse" in {
