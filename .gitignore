@@ -17,3 +17,7 @@ src/project/
 *.ipynb
 
 *.txt
+
+.metals/
+
+.vscode/
