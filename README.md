@@ -1,7 +1,8 @@
 # Multi-Scalar Multiplication in Chisel
 
-This is a Chisel Module that performs Multi-Scalar Multiplication over Elliptic Curves.
-This is also my Senior Thesis Project. Feel free to clone it, try running it, or make improvements.
+This is a Chisel Module that performs Multi-Scalar Multiplication over Elliptic Curves. This is also my Undergraduate Thesis Project. Feel free to clone it, try running it, or make improvements.
+
+As of right now (3-3-22) this is still very much a work in progress. A thesis also requires a lot of writing so I'm working on getting that finalized right now. I can link the paper here when everything is finalized. This project is part of a larger effort to make Verifiable Computing accelerators at UCSC and in the future, this module and other like it can be found at [here.](https://github.com/ucsc-vama)
 
 
 ### Let's go over what modules are here:
