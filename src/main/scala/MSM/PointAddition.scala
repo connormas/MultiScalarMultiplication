@@ -3,10 +3,15 @@ package MSM
 import chisel3._
 import chisel3.util.RegEnable
 
-/** TODO
- * - custom bundle interface for PointAddition
+/**
+ * Point Addition Module
+ * This module takes in two EC points and adds them together.
+ *
+ * @param w: the bit width of the EC point inputs
+ *
+ * TODO
+ * - custom bundle interface for PointAddition (will make switching to Projective easier)
  * - utilize Option[T] to let this synthesize full adder or just doubler
- * - custom point bundle
  * - mod inverse with gcd method
  * */
 
@@ -106,8 +111,13 @@ class PointAddition(val w: Int) extends Module {
   //printf(p"--- inside PAdd (${p1x},${p1y}) + (${p2x},${p2y}) = (${io.outx},${io.outy}), load=${io.load}, padd.io.valid=${io.valid}\n\n\n")
 }
 
-
-/* finds the modular inverse of A mod P */
+/**
+ * Multiplicative Modular Inverse Module
+ * This module takes in two values, a and p, and finds the mod inverse of
+ * a mod p.
+ *
+ * @param w: the bit width of inputs a and p
+ * */
 class ModularInverse(val w: Int) extends Module {
   val io = IO(new Bundle {
     val a =     Input(SInt(w.W))
